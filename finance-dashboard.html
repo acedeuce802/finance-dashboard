@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+:root {
+  --bg-base:#0d1117;--bg-surface:#161b22;--bg-raised:#1c2230;--bg-card:#21283a;
+  --border:#2d3748;--border-light:#3a4a5c;
+  --text-primary:#e2e8f0;--text-secondary:#8b9cb8;--text-muted:#536480;
+  --accent-gold:#f6c90e;--accent-blue:#4a9eff;--accent-teal:#2dd4bf;
+  --positive:#34d399;--negative:#f87171;
+  --bank-color:#2dd4bf;--investment-color:#4a9eff;--asset-color:#34d399;--debt-color:#fb7185;
+  --font-mono:'IBM Plex Mono',monospace;--font-sans:'IBM Plex Sans',sans-serif;
+  --radius:8px;--radius-lg:12px;--shadow:0 4px 24px rgba(0,0,0,0.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-sans);min-height:100vh;font-size:14px;line-height:1.5;}
+nav{background:var(--bg-surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;height:56px;position:sticky;top:0;z-index:100;gap:8px;}
+.nav-brand{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--accent-gold);letter-spacing:.08em;text-transform:uppercase;margin-right:24px;white-space:nowrap;}
+.nav-tabs{display:flex;gap:2px;flex:1;}
+.nav-tab{background:none;border:none;color:var(--text-secondary);font-family:var(--font-sans);font-size:13px;font-weight:500;padding:6px 16px;cursor:pointer;border-radius:var(--radius);transition:all .15s;letter-spacing:.02em;}
+.nav-tab:hover{color:var(--text-primary);background:var(--bg-raised);}
+.nav-tab.active{color:var(--accent-gold);background:rgba(246,201,14,.08);}
+.nav-actions{display:flex;gap:8px;align-items:center;}
+.btn{font-family:var(--font-sans);font-size:12px;font-weight:500;padding:6px 14px;border-radius:var(--radius);border:1px solid var(--border);cursor:pointer;transition:all .15s;letter-spacing:.03em;white-space:nowrap;}
+.btn-primary{background:var(--accent-gold);color:#000;border-color:var(--accent-gold);}
+.btn-primary:hover{background:#ffd93d;}
+.btn-ghost{background:transparent;color:var(--text-secondary);}
+.btn-ghost:hover{color:var(--text-primary);background:var(--bg-raised);}
+.btn-danger{background:transparent;color:var(--negative);border-color:var(--negative);}
+.btn-danger:hover{background:rgba(248,113,113,.1);}
+.btn-sm{padding:4px 10px;font-size:11px;}
+.btn-icon{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;border-radius:4px;font-size:16px;line-height:1;transition:all .15s;}
+.btn-icon:hover{color:var(--text-primary);background:var(--bg-raised);}
+.page{display:none;padding:24px;max-width:1400px;margin:0 auto;}
+.page.active{display:block;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.card-title{font-family:var(--font-mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--text-secondary);}
+.card-actions{display:flex;gap:6px;}
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px;}
+.stat-box{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;}
+.stat-label{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted);margin-bottom:6px;}
+.stat-value{font-family:var(--font-mono);font-size:22px;font-weight:600;line-height:1.1;}
+.stat-value.positive{color:var(--positive);}
+.stat-value.negative{color:var(--negative);}
+.stat-value.gold{color:var(--accent-gold);}
+.stat-sub{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:4px;}
+.chart-wrap{position:relative;width:100%;}
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);font-weight:500;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
+.data-table td{padding:10px 12px;border-bottom:1px solid rgba(45,55,72,.5);vertical-align:middle;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:rgba(255,255,255,.02);}
+.mono{font-family:var(--font-mono);}
+.text-right{text-align:right;}
+.badge{display:inline-block;font-family:var(--font-mono);font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em;}
+.badge-bank{background:rgba(45,212,191,.12);color:var(--bank-color);border:1px solid rgba(45,212,191,.25);}
+.badge-investment{background:rgba(74,158,255,.12);color:var(--investment-color);border:1px solid rgba(74,158,255,.25);}
+.badge-asset{background:rgba(52,211,153,.12);color:var(--asset-color);border:1px solid rgba(52,211,153,.25);}
+.badge-debt{background:rgba(248,113,113,.12);color:var(--debt-color);border:1px solid rgba(248,113,113,.25);}
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-secondary);margin-bottom:6px;}
+.form-input,.form-select{width:100%;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;padding:8px 12px;transition:border-color .15s;outline:none;}
+.form-input:focus,.form-select:focus{border-color:var(--accent-gold);}
+.form-select option{background:var(--bg-raised);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-backdrop.open{display:flex;}
+.modal{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);}
+.modal-title{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--accent-gold);margin-bottom:20px;text-transform:uppercase;letter-spacing:.08em;}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;}
+.section-gap{margin-bottom:24px;}
+.inline-flex{display:flex;align-items:center;gap:8px;}
+.flex-between{display:flex;align-items:center;justify-content:space-between;}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.scenario-bar{display:flex;align-items:center;gap:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px;margin-bottom:20px;}
+.scenario-label{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;}
+.fire-number{font-family:var(--font-mono);font-size:36px;font-weight:600;color:var(--accent-gold);line-height:1.1;}
+.fire-sub{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.progress-bar{height:6px;background:var(--bg-raised);border-radius:3px;overflow:hidden;margin-top:8px;}
+.progress-fill{height:100%;border-radius:3px;background:var(--accent-gold);transition:width .5s ease;}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+.hint{font-size:11px;color:var(--text-muted);margin-top:4px;font-style:italic;}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-family:var(--font-mono);font-size:12px;}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;}
+.mb-4{margin-bottom:16px;} .mb-6{margin-bottom:24px;} .mt-4{margin-top:16px;}
+.text-positive{color:var(--positive);}.text-negative{color:var(--negative);}
+input[type=file]{display:none;}
+.drag-handle{cursor:grab;color:var(--text-muted);font-size:14px;padding:0 6px;user-select:none;line-height:1;}
+.drag-handle:active{cursor:grabbing;}
+tr.drag-over td{background:rgba(246,201,14,0.06);border-top:2px solid var(--accent-gold);}
+tr.dragging{opacity:0.4;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-brand">◈ NetWorth</span>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('projections')">Projections</button>
+    <button class="nav-tab" onclick="showPage('coastfire')">Coast FIRE</button>
+    <button class="nav-tab" onclick="showPage('accounts')">Accounts</button>
+    <button class="nav-tab" onclick="showPage('settings')">Settings</button>
+  </div>
+  <div class="nav-actions">
+    <button class="btn btn-ghost btn-sm" onclick="loadFile()">Load JSON</button>
+    <button class="btn btn-primary btn-sm" onclick="saveFile()">Save JSON</button>
+    <input type="file" id="fileInput" accept=".json" onchange="handleFileLoad(event)">
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════
+     PAGE: DASHBOARD
+══════════════════════════════════════════════ -->
+<div class="page active" id="page-dashboard">
+  <div class="stat-row" id="stat-row"></div>
+
+  <div class="section-gap">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Net Worth History</span>
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openBalanceModal()">+ Add Month Snapshot</button>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="netWorthChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2 section-gap">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Assets by Category</span></div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="categoryChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Account Breakdown</span></div>
+      <div id="account-breakdown-list"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Balance History Log</span>
+      <button class="btn btn-ghost btn-sm" onclick="openBalanceModal()">+ Entry</button>
+    </div>
+    <div id="balance-log"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE: PROJECTIONS
+══════════════════════════════════════════════ -->
+<div class="page" id="page-projections">
+  <div class="scenario-bar">
+    <span class="scenario-label">Scenario:</span>
+    <select class="form-select" id="scenarioSelect" style="width:200px" onchange="onScenarioChange()"></select>
+    <button class="btn btn-ghost btn-sm" onclick="newScenario()">+ New</button>
+    <button class="btn btn-ghost btn-sm" onclick="renameScenario()">Rename</button>
+    <button class="btn btn-danger btn-sm" onclick="deleteScenario()">Delete</button>
+  </div>
+
+  <div class="section-gap">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Net Worth Projection</span>
+      </div>
+      <div class="chart-wrap" style="height:300px">
+        <canvas id="projectionChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2 section-gap">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Monthly Contributions</span>
+        <button class="btn btn-ghost btn-sm" onclick="openContribModal()">+ Edit</button>
+      </div>
+      <div id="contrib-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">One-Time Events</span>
+        <button class="btn btn-ghost btn-sm" onclick="openEventModal()">+ Add Event</button>
+      </div>
+      <div id="event-list"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Retirement Drawdown Settings</span>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group">
+        <label class="form-label">Monthly Spend in Retirement</label>
+        <input class="form-input" type="number" id="retSpend" placeholder="5000" onchange="saveSettings();renderAll()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Inflation Rate (%)</label>
+        <input class="form-input" type="number" id="inflationRate" placeholder="3" step="0.1" onchange="saveSettings();renderAll()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Safe Withdrawal Rate (%)</label>
+        <input class="form-input" type="number" id="swr" placeholder="4" step="0.1" onchange="saveSettings();renderAll()">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE: COAST FIRE
+══════════════════════════════════════════════ -->
+<div class="page" id="page-coastfire">
+  <div class="stat-row" id="coast-stat-row"></div>
+
+  <div class="grid-2 section-gap">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Coast FIRE Number</span></div>
+      <div id="coast-fire-display"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">FIRE Number</span></div>
+      <div id="fire-number-display"></div>
+    </div>
+  </div>
+
+  <div class="card section-gap">
+    <div class="card-header"><span class="card-title">Investment Growth to Retirement</span></div>
+    <div class="chart-wrap" style="height:300px">
+      <canvas id="coastChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Coast FIRE Settings</span></div>
+    <div class="form-row-3">
+      <div class="form-group">
+        <label class="form-label">Current Age</label>
+        <input class="form-input" type="number" id="currentAge" placeholder="30" onchange="saveSettings();renderAll()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Retirement Age</label>
+        <input class="form-input" type="number" id="retirementAge" placeholder="55" onchange="saveSettings();renderAll()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Avg Investment Return (%)</label>
+        <input class="form-input" type="number" id="avgReturn" placeholder="7" step="0.1" onchange="saveSettings();renderAll()">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE: ACCOUNTS
+══════════════════════════════════════════════ -->
+<div class="page" id="page-accounts">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">All Accounts</span>
+      <button class="btn btn-primary btn-sm" onclick="openAccountModal()">+ Add Account</button>
+    </div>
+    <div id="accounts-table-wrap"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE: SETTINGS
+══════════════════════════════════════════════ -->
+<div class="page" id="page-settings">
+  <div class="card">
+    <div class="card-header"><span class="card-title">General Settings</span></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Your Name (optional)</label>
+        <input class="form-input" type="text" id="userName" placeholder="Adam" onchange="saveSettings()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Currency Symbol</label>
+        <input class="form-input" type="text" id="currencySymbol" placeholder="$" maxlength="3" onchange="saveSettings();renderAll()">
+      </div>
+    </div>
+  </div>
+  <div style="height:16px"></div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Data Management</span></div>
+    <div class="inline-flex">
+      <button class="btn btn-ghost" onclick="saveFile()">Export JSON</button>
+      <button class="btn btn-ghost" onclick="loadFile()">Import JSON</button>
+      <button class="btn btn-danger" onclick="clearAll()">Clear All Data</button>
+    </div>
+    <p class="hint" style="margin-top:12px">Save your JSON file to your NAS or a local folder. Load it each session, or bookmark the file path for quick access.</p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════════ -->
+
+<!-- Account Modal -->
+<div class="modal-backdrop" id="modal-account">
+  <div class="modal">
+    <div class="modal-title" id="modal-account-title">Add Account</div>
+    <input type="hidden" id="editAccountId">
+    <div class="form-group">
+      <label class="form-label">Account Name</label>
+      <input class="form-input" type="text" id="acc-name" placeholder="Chase Checking">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="acc-category">
+          <option value="bank">Bank / Savings</option>
+          <option value="investment">Investment</option>
+          <option value="asset">Asset</option>
+          <option value="debt">Debt</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sub-type</label>
+        <select class="form-select" id="acc-subtype">
+          <option value="checking">Checking</option>
+          <option value="savings">Savings / HYSA</option>
+          <option value="401k">401(k)</option>
+          <option value="roth">Roth IRA</option>
+          <option value="brokerage">Brokerage</option>
+          <option value="hsa">HSA</option>
+          <option value="home">Home</option>
+          <option value="vehicle">Vehicle</option>
+          <option value="other_asset">Other Asset</option>
+          <option value="mortgage">Mortgage</option>
+          <option value="auto_loan">Auto Loan</option>
+          <option value="student_loan">Student Loan</option>
+          <option value="credit_card">Credit Card</option>
+          <option value="other_debt">Other Debt</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Est. Annual Return / Interest Rate (%)</label>
+        <input class="form-input" type="number" id="acc-rate" placeholder="7" step="0.1">
+        <p class="hint">Use positive for growth, negative for debt cost (or leave 0 for debts)</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Monthly Contribution (default $)</label>
+        <input class="form-input" type="number" id="acc-contrib" placeholder="0">
+        <p class="hint">Can be overridden per scenario</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-account')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAccount()">Save Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- Balance Entry Modal -->
+<div class="modal-backdrop" id="modal-balance">
+  <div class="modal">
+    <div class="modal-title">Add / Edit Balance Snapshot</div>
+    <p class="hint" style="margin-bottom:16px">Enter balances for a specific month. Leave blank to skip an account.</p>
+    <div class="form-row" style="margin-bottom:16px">
+      <div class="form-group">
+        <label class="form-label">Year</label>
+        <input class="form-input" type="number" id="bal-year" placeholder="2025">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Month (1–12)</label>
+        <input class="form-input" type="number" id="bal-month" min="1" max="12" placeholder="1">
+      </div>
+    </div>
+    <div id="balance-fields"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-balance')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBalances()">Save Snapshot</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contribution Override Modal (per scenario) -->
+<div class="modal-backdrop" id="modal-contrib">
+  <div class="modal">
+    <div class="modal-title">Edit Contributions — <span id="contrib-scenario-name"></span></div>
+    <p class="hint" style="margin-bottom:16px">Override contribution amounts for this scenario. Leave blank to use the account default.</p>
+    <div id="contrib-fields"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-contrib')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContribs()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- One-Time Event Modal -->
+<div class="modal-backdrop" id="modal-event">
+  <div class="modal">
+    <div class="modal-title">Add One-Time Event</div>
+    <p class="hint" style="margin-bottom:16px">A bonus, windfall, or planned contribution. Auto-clears after the date passes.</p>
+    <input type="hidden" id="editEventId">
+    <div class="form-group">
+      <label class="form-label">Label</label>
+      <input class="form-input" type="text" id="evt-label" placeholder="Year-end bonus → 401k">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Account</label>
+        <select class="form-select" id="evt-account"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount ($)</label>
+        <input class="form-input" type="number" id="evt-amount" placeholder="5000">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Expected Date (YYYY-MM)</label>
+      <input class="form-input" type="month" id="evt-date">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-event')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEvent()">Save Event</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let state = {
+  meta: { currentAge: 30, retirementAge: 55, retSpend: 5000, inflationRate: 3, swr: 4, avgReturn: 7, userName: '', currencySymbol: '$' },
+  accounts: [],
+  balances: [],
+  oneTimeEvents: [],
+  scenarios: [{ id: 'default', name: 'Base Case', contributions: {}, oneTimeEvents: [] }],
+  activeScenario: 'default'
+};
+
+let charts = {};
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+function uid() { return Math.random().toString(36).slice(2, 9); }
+function cur(v) { const s = state.meta.currencySymbol || '$'; return s + fmt(v); }
+function fmt(v) { return Math.abs(v) >= 1e6 ? (v/1e6).toFixed(2)+'M' : Math.abs(v) >= 1e3 ? (v/1e3).toFixed(1)+'K' : Math.round(v).toLocaleString(); }
+function fmtFull(v) { return (state.meta.currencySymbol || '$') + Math.round(v).toLocaleString(); }
+function monthKey(y, m) { return y + '-' + String(m).padStart(2,'0'); }
+function parseMonthKey(k) { const [y,m] = k.split('-'); return { year: +y, month: +m }; }
+function categoryColor(cat) { return { bank:'#2dd4bf', investment:'#4a9eff', asset:'#34d399', debt:'#fb7185' }[cat] || '#8b9cb8'; }
+
+function getAccountById(id) { return state.accounts.find(a => a.id === id); }
+
+function getScenario(id) {
+  return state.scenarios.find(s => s.id === (id || state.activeScenario)) || state.scenarios[0];
+}
+
+function getContribution(accountId, scenarioId) {
+  const sc = getScenario(scenarioId);
+  if (sc && sc.contributions && sc.contributions[accountId] !== undefined) return sc.contributions[accountId];
+  const acc = getAccountById(accountId);
+  return acc ? (acc.contrib || 0) : 0;
+}
+
+// Latest balance for each account
+function getLatestBalances() {
+  const latest = {};
+  state.balances.forEach(b => {
+    const key = b.accountId;
+    if (!latest[key] || monthKey(b.year, b.month) > monthKey(latest[key].year, latest[key].month)) {
+      latest[key] = b;
+    }
+  });
+  return latest;
+}
+
+function getBalanceAtMonth(accountId, year, month) {
+  const entries = state.balances
+    .filter(b => b.accountId === accountId && (b.year < year || (b.year === year && b.month <= month)))
+    .sort((a,b) => monthKey(b.year,b.month) > monthKey(a.year,a.month) ? 1 : -1);
+  return entries[0] ? entries[0].value : null;
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => { if (t.textContent.toLowerCase().includes(name === 'coastfire' ? 'coast' : name)) t.classList.add('active'); });
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+// SAVE / LOAD
+// ══════════════════════════════════════════════
+function saveFile() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'finance-dashboard.json';
+  a.click();
+}
+
+function loadFile() { document.getElementById('fileInput').click(); }
+
+function handleFileLoad(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      state = JSON.parse(ev.target.result);
+      if (!state.scenarios) state.scenarios = [{ id: 'default', name: 'Base Case', contributions: {}, oneTimeEvents: [] }];
+      if (!state.activeScenario) state.activeScenario = state.scenarios[0].id;
+      loadSettingsToUI();
+      renderAll(); // renderAll now calls persistState
+    } catch(err) { alert('Invalid JSON file: ' + err.message); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function clearAll() {
+  if (!confirm('Clear ALL data? This cannot be undone.')) return;
+  state = { meta: { currentAge:30, retirementAge:55, retSpend:5000, inflationRate:3, swr:4, avgReturn:7, userName:'', currencySymbol:'$' }, accounts:[], balances:[], oneTimeEvents:[], scenarios:[{ id:'default', name:'Base Case', contributions:{}, oneTimeEvents:[] }], activeScenario:'default' };
+  try { localStorage.removeItem(LS_KEY); } catch(e) {}
+  loadSettingsToUI();
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════════
+function saveSettings() {
+  const g = id => { const el = document.getElementById(id); return el ? el.value : null; };
+  const gn = id => { const el = document.getElementById(id); return el ? parseFloat(el.value) || 0 : 0; };
+  state.meta.userName = g('userName') || '';
+  state.meta.currencySymbol = g('currencySymbol') || '$';
+  state.meta.currentAge = gn('currentAge') || 30;
+  state.meta.retirementAge = gn('retirementAge') || 55;
+  state.meta.retSpend = gn('retSpend') || 5000;
+  state.meta.inflationRate = gn('inflationRate') || 3;
+  state.meta.swr = gn('swr') || 4;
+  state.meta.avgReturn = gn('avgReturn') || 7;
+}
+
+function loadSettingsToUI() {
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+  set('userName', state.meta.userName);
+  set('currencySymbol', state.meta.currencySymbol || '$');
+  set('currentAge', state.meta.currentAge);
+  set('retirementAge', state.meta.retirementAge);
+  set('retSpend', state.meta.retSpend);
+  set('inflationRate', state.meta.inflationRate);
+  set('swr', state.meta.swr);
+  set('avgReturn', state.meta.avgReturn);
+}
+
+// ══════════════════════════════════════════════
+// ACCOUNTS CRUD
+// ══════════════════════════════════════════════
+function openAccountModal(id) {
+  document.getElementById('editAccountId').value = id || '';
+  const acc = id ? getAccountById(id) : null;
+  document.getElementById('modal-account-title').textContent = id ? 'Edit Account' : 'Add Account';
+  document.getElementById('acc-name').value = acc ? acc.name : '';
+  document.getElementById('acc-category').value = acc ? acc.category : 'bank';
+  document.getElementById('acc-subtype').value = acc ? (acc.subtype || 'checking') : 'checking';
+  document.getElementById('acc-rate').value = acc ? acc.rate : '';
+  document.getElementById('acc-contrib').value = acc ? (acc.contrib || '') : '';
+  openModal('modal-account');
+}
+
+function saveAccount() {
+  const id = document.getElementById('editAccountId').value;
+  const acc = {
+    id: id || uid(),
+    name: document.getElementById('acc-name').value.trim(),
+    category: document.getElementById('acc-category').value,
+    subtype: document.getElementById('acc-subtype').value,
+    rate: parseFloat(document.getElementById('acc-rate').value) || 0,
+    contrib: parseFloat(document.getElementById('acc-contrib').value) || 0
+  };
+  if (!acc.name) { alert('Account name required'); return; }
+  if (id) {
+    const idx = state.accounts.findIndex(a => a.id === id);
+    if (idx >= 0) state.accounts[idx] = acc;
+  } else {
+    state.accounts.push(acc);
+  }
+  closeModal('modal-account');
+  renderAll();
+}
+
+function deleteAccount(id) {
+  if (!confirm('Delete this account and all its balance history?')) return;
+  state.accounts = state.accounts.filter(a => a.id !== id);
+  state.balances = state.balances.filter(b => b.accountId !== id);
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+// BALANCE SNAPSHOTS
+// ══════════════════════════════════════════════
+function openBalanceModal() {
+  const now = new Date();
+  document.getElementById('bal-year').value = now.getFullYear();
+  document.getElementById('bal-month').value = now.getMonth() + 1;
+  // Build fields for each account
+  const wrap = document.getElementById('balance-fields');
+  wrap.innerHTML = '';
+  ['bank','investment','asset','debt'].forEach(cat => {
+    const accs = state.accounts.filter(a => a.category === cat);
+    if (!accs.length) return;
+    const header = document.createElement('div');
+    header.innerHTML = `<div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin:12px 0 8px">${cat}</div>`;
+    wrap.appendChild(header);
+    accs.forEach(acc => {
+      const row = document.createElement('div');
+      row.className = 'form-group';
+      row.innerHTML = `<label class="form-label">${acc.name}</label><input class="form-input" type="number" id="bal-${acc.id}" placeholder="0">`;
+      wrap.appendChild(row);
+    });
+  });
+  if (!state.accounts.length) wrap.innerHTML = '<p class="hint">No accounts yet. Add accounts first.</p>';
+  openModal('modal-balance');
+}
+
+function saveBalances() {
+  const year = parseInt(document.getElementById('bal-year').value);
+  const month = parseInt(document.getElementById('bal-month').value);
+  if (!year || !month) { alert('Year and month required'); return; }
+  state.accounts.forEach(acc => {
+    const el = document.getElementById('bal-' + acc.id);
+    if (!el || el.value === '') return;
+    const value = parseFloat(el.value);
+    // Remove any existing entry for this account+month
+    state.balances = state.balances.filter(b => !(b.accountId === acc.id && b.year === year && b.month === month));
+    state.balances.push({ accountId: acc.id, year, month, value });
+  });
+  closeModal('modal-balance');
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+// SCENARIOS
+// ══════════════════════════════════════════════
+function renderScenarioSelect() {
+  const sel = document.getElementById('scenarioSelect');
+  sel.innerHTML = state.scenarios.map(s => `<option value="${s.id}" ${s.id===state.activeScenario?'selected':''}>${s.name}</option>`).join('');
+}
+
+function onScenarioChange() {
+  state.activeScenario = document.getElementById('scenarioSelect').value;
+  renderAll();
+}
+
+function newScenario() {
+  const name = prompt('Scenario name:', 'Scenario ' + (state.scenarios.length + 1));
+  if (!name) return;
+  const id = uid();
+  state.scenarios.push({ id, name, contributions: {}, oneTimeEvents: [] });
+  state.activeScenario = id;
+  renderAll();
+}
+
+function renameScenario() {
+  const sc = getScenario();
+  if (!sc) return;
+  const name = prompt('Rename scenario:', sc.name);
+  if (name) { sc.name = name; renderAll(); }
+}
+
+function deleteScenario() {
+  if (state.scenarios.length <= 1) { alert('Cannot delete the only scenario.'); return; }
+  if (!confirm('Delete this scenario?')) return;
+  state.scenarios = state.scenarios.filter(s => s.id !== state.activeScenario);
+  state.activeScenario = state.scenarios[0].id;
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+// CONTRIBUTIONS
+// ══════════════════════════════════════════════
+function openContribModal() {
+  const sc = getScenario();
+  document.getElementById('contrib-scenario-name').textContent = sc.name;
+  const wrap = document.getElementById('contrib-fields');
+  wrap.innerHTML = '';
+  const invAccs = state.accounts.filter(a => a.category !== 'debt' && a.category !== 'asset');
+  invAccs.forEach(acc => {
+    const cur = sc.contributions[acc.id] !== undefined ? sc.contributions[acc.id] : acc.contrib;
+    const div = document.createElement('div');
+    div.className = 'form-group';
+    div.innerHTML = `<label class="form-label">${acc.name} <span style="color:var(--text-muted);font-weight:300">(default: ${fmtFull(acc.contrib||0)}/mo)</span></label><input class="form-input" type="number" id="contrib-${acc.id}" value="${cur||''}" placeholder="${acc.contrib||0}">`;
+    wrap.appendChild(div);
+  });
+  if (!invAccs.length) wrap.innerHTML = '<p class="hint">No bank or investment accounts yet.</p>';
+  openModal('modal-contrib');
+}
+
+function saveContribs() {
+  const sc = getScenario();
+  state.accounts.forEach(acc => {
+    const el = document.getElementById('contrib-' + acc.id);
+    if (!el) return;
+    if (el.value === '') delete sc.contributions[acc.id];
+    else sc.contributions[acc.id] = parseFloat(el.value) || 0;
+  });
+  closeModal('modal-contrib');
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+// ONE-TIME EVENTS
+// ══════════════════════════════════════════════
+function openEventModal(id) {
+  document.getElementById('editEventId').value = id || '';
+  const ev = id ? getScenario().oneTimeEvents.find(e => e.id === id) : null;
+  document.getElementById('evt-label').value = ev ? ev.label : '';
+  document.getElementById('evt-amount').value = ev ? ev.amount : '';
+  document.getElementById('evt-date').value = ev ? ev.date : '';
+  // Populate account select
+  const sel = document.getElementById('evt-account');
+  sel.innerHTML = state.accounts.map(a => `<option value="${a.id}" ${ev&&ev.accountId===a.id?'selected':''}>${a.name}</option>`).join('');
+  openModal('modal-event');
+}
+
+function saveEvent() {
+  const sc = getScenario();
+  if (!sc.oneTimeEvents) sc.oneTimeEvents = [];
+  const id = document.getElementById('editEventId').value;
+  const ev = {
+    id: id || uid(),
+    label: document.getElementById('evt-label').value.trim(),
+    accountId: document.getElementById('evt-account').value,
+    amount: parseFloat(document.getElementById('evt-amount').value) || 0,
+    date: document.getElementById('evt-date').value
+  };
+  if (!ev.label || !ev.date) { alert('Label and date required'); return; }
+  if (id) {
+    const idx = sc.oneTimeEvents.findIndex(e => e.id === id);
+    if (idx >= 0) sc.oneTimeEvents[idx] = ev;
+  } else {
+    sc.oneTimeEvents.push(ev);
+  }
+  // Auto-clear past events
+  autoClearEvents(sc);
+  closeModal('modal-event');
+  renderAll();
+}
+
+function deleteEvent(id) {
+  const sc = getScenario();
+  sc.oneTimeEvents = sc.oneTimeEvents.filter(e => e.id !== id);
+  renderAll();
+}
+
+function autoClearEvents(sc) {
+  const now = new Date();
+  const nowKey = monthKey(now.getFullYear(), now.getMonth() + 1);
+  if (sc.oneTimeEvents) sc.oneTimeEvents = sc.oneTimeEvents.filter(e => e.date >= nowKey);
+}
+
+// ══════════════════════════════════════════════
+// AMORTIZATION HELPERS
+// ══════════════════════════════════════════════
+
+// Given a debt balance (positive number), APR, and monthly payment,
+// returns the full amortization schedule as an array of monthly snapshots.
+function buildAmortSchedule(principal, apr, monthlyPayment) {
+  const schedule = [];
+  const monthlyRate = apr / 100 / 12;
+  let balance = Math.abs(principal); // work with positive balance internally
+  if (balance <= 0 || monthlyRate < 0) return schedule;
+
+  // If no payment set, compute minimum interest-only as a floor so it doesn't blow up
+  const interestOnly = balance * monthlyRate;
+  const payment = monthlyPayment > interestOnly ? monthlyPayment : interestOnly + 1;
+
+  let month = 0;
+  while (balance > 0.005 && month < 1200) { // cap at 100 years
+    const interestCharge = balance * monthlyRate;
+    const principalPaid = Math.min(payment - interestCharge, balance);
+    balance -= principalPaid;
+    if (balance < 0.005) balance = 0;
+    schedule.push({ month: ++month, interest: interestCharge, principalPaid, balance });
+  }
+  return schedule;
+}
+
+// Pre-compute amortization schedules for all debt accounts at simulation start
+function buildDebtSchedules(latestBals) {
+  const schedules = {};
+  state.accounts.forEach(acc => {
+    if (acc.category !== 'debt') return;
+    const b = latestBals[acc.id];
+    const principal = b ? b.value : 0;
+    if (!principal) return;
+    schedules[acc.id] = buildAmortSchedule(principal, acc.rate || 0, acc.contrib || 0);
+  });
+  return schedules;
+}
+
+// ══════════════════════════════════════════════
+// PROJECTION ENGINE
+// ══════════════════════════════════════════════
+function buildProjection(scenarioId, months) {
+  const sc = getScenario(scenarioId);
+  const now = new Date();
+  const latestBals = getLatestBalances();
+
+  // Start values
+  const startValues = {};
+  state.accounts.forEach(acc => {
+    startValues[acc.id] = latestBals[acc.id] ? latestBals[acc.id].value : 0;
+  });
+
+  // Pre-build amortization schedules for debts
+  const debtSchedules = buildDebtSchedules(latestBals);
+  // Track which amortization month each debt is on (0 = start of schedule)
+  const debtMonth = {};
+  state.accounts.forEach(acc => { if (acc.category === 'debt') debtMonth[acc.id] = 0; });
+
+  const points = [];
+  const values = { ...startValues };
+
+  for (let i = 0; i <= months; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const key = monthKey(date.getFullYear(), date.getMonth() + 1);
+
+    // Apply one-time events for this month (works on debts too — lump-sum paydown)
+    if (sc && sc.oneTimeEvents) {
+      sc.oneTimeEvents.forEach(ev => {
+        if (ev.date === key && values[ev.accountId] !== undefined) {
+          const acc = getAccountById(ev.accountId);
+          if (acc && acc.category === 'debt') {
+            // Extra payment reduces principal; store as negative (debt convention)
+            values[ev.accountId] = Math.min(0, values[ev.accountId] + ev.amount);
+          } else {
+            values[ev.accountId] += ev.amount;
+          }
+        }
+      });
+    }
+
+    let totalAssets = 0, totalDebts = 0;
+    state.accounts.forEach(acc => {
+      const v = values[acc.id] || 0;
+      if (acc.category === 'debt') totalDebts += Math.abs(v);
+      else totalAssets += v;
+    });
+
+    points.push({
+      key, date,
+      assets: totalAssets,
+      debts: totalDebts,
+      netWorth: totalAssets - totalDebts,
+      snapshot: { ...values }
+    });
+
+    // Advance one month
+    state.accounts.forEach(acc => {
+      const monthlyRate = (acc.rate || 0) / 100 / 12;
+      const contrib = getContribution(acc.id, scenarioId);
+
+      if (acc.category === 'debt') {
+        const sched = debtSchedules[acc.id];
+        const dm = debtMonth[acc.id];
+        if (sched && dm < sched.length) {
+          // Use the pre-computed amortization schedule row
+          // values stored as negative to match balance-entry convention
+          values[acc.id] = -(sched[dm].balance);
+          debtMonth[acc.id]++;
+        } else {
+          // Debt paid off
+          values[acc.id] = 0;
+        }
+        // Scenario contribution override: if override is different from default,
+        // treat the delta as extra principal payment (recomputed inline)
+        const defaultPayment = acc.contrib || 0;
+        const scenarioPayment = sc && sc.contributions && sc.contributions[acc.id] !== undefined
+          ? sc.contributions[acc.id] : defaultPayment;
+        if (scenarioPayment !== defaultPayment && values[acc.id] < 0) {
+          const extra = scenarioPayment - defaultPayment;
+          values[acc.id] = Math.min(0, values[acc.id] + extra);
+        }
+      } else {
+        values[acc.id] = (values[acc.id] || 0) * (1 + monthlyRate) + contrib;
+      }
+    });
+  }
+
+  return points;
+}
+
+// ══════════════════════════════════════════════
+// COAST FIRE MATH
+// ══════════════════════════════════════════════
+function computeCoastFIRE() {
+  const { currentAge, retirementAge, retSpend, swr, avgReturn, inflationRate } = state.meta;
+  const yearsToRet = Math.max(0, retirementAge - currentAge);
+  const fireNumber = (retSpend * 12) / ((swr || 4) / 100);
+  const r = (avgReturn || 7) / 100;
+  const coastFireNumber = fireNumber / Math.pow(1 + r, yearsToRet);
+  
+  // Current investable assets (bank + investment only)
+  const latestBals = getLatestBalances();
+  let currentInvestable = 0;
+  state.accounts.forEach(acc => {
+    if (acc.category === 'bank' || acc.category === 'investment') {
+      const b = latestBals[acc.id];
+      currentInvestable += b ? b.value : 0;
+    }
+  });
+  
+  return { fireNumber, coastFireNumber, currentInvestable, yearsToRet };
+}
+
+// ══════════════════════════════════════════════
+// CHART HELPERS
+// ══════════════════════════════════════════════
+const CHART_DEFAULTS = {
+  color: '#8b9cb8',
+  gridColor: 'rgba(45,55,72,0.5)',
+  font: { family: "'IBM Plex Mono', monospace", size: 10 }
+};
+
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function chartDefaults(yLabel) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#21283a',
+        borderColor: '#2d3748',
+        borderWidth: 1,
+        titleFont: CHART_DEFAULTS.font,
+        bodyFont: CHART_DEFAULTS.font,
+        callbacks: {
+          label: ctx => ' ' + fmtFull(ctx.parsed.y)
+        }
+      }
+    },
+    scales: {
+      x: { grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, maxTicksLimit: 12 } },
+      y: { grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, callback: v => cur(v) } }
+    }
+  };
+}
+
+
+// ══════════════════════════════════════════════
+// RENDER FUNCTIONS
+// ══════════════════════════════════════════════
+
+function renderAll() {
+  renderScenarioSelect();
+  renderStats();
+  renderNetWorthChart();
+  renderCategoryChart();
+  renderAccountBreakdown();
+  renderBalanceLog();
+  renderProjectionChart();
+  renderContribList();
+  renderEventList();
+  renderCoastFIRE();
+  renderAccountsTable();
+  loadSettingsToUI();
+}
+
+function renderStats() {
+  const latestBals = getLatestBalances();
+  let totalAssets = 0, totalDebts = 0, totalInvestments = 0;
+  state.accounts.forEach(acc => {
+    const b = latestBals[acc.id];
+    const v = b ? b.value : 0;
+    if (acc.category === 'debt') totalDebts += Math.abs(v);
+    else {
+      totalAssets += v;
+      if (acc.category === 'investment') totalInvestments += v;
+    }
+  });
+  const netWorth = totalAssets - totalDebts;
+  const el = document.getElementById('stat-row');
+  el.innerHTML = `
+    <div class="stat-box">
+      <div class="stat-label">Net Worth</div>
+      <div class="stat-value ${netWorth >= 0 ? 'gold' : 'negative'}">${cur(netWorth)}</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Total Assets</div>
+      <div class="stat-value positive">${cur(totalAssets)}</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Total Debts</div>
+      <div class="stat-value negative">${cur(totalDebts)}</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Investments</div>
+      <div class="stat-value" style="color:var(--accent-blue)">${cur(totalInvestments)}</div>
+    </div>`;
+}
+
+function renderNetWorthChart() {
+  destroyChart('netWorthChart');
+  const canvas = document.getElementById('netWorthChart');
+  if (!canvas) return;
+
+  // Build historical data from balances
+  const allMonths = [...new Set(state.balances.map(b => monthKey(b.year, b.month)))].sort();
+  if (allMonths.length < 2) {
+    canvas.parentElement.innerHTML = '<div class="empty-state">Add at least 2 months of balance data to see the chart.<br>Click "Add Month Snapshot" to begin.</div>';
+    return;
+  }
+
+  const labels = [], assets = [], debts = [], netWorths = [];
+  allMonths.forEach(mk => {
+    const { year, month } = parseMonthKey(mk);
+    let ta = 0, td = 0;
+    state.accounts.forEach(acc => {
+      const v = getBalanceAtMonth(acc.id, year, month);
+      if (v === null) return;
+      if (acc.category === 'debt') td += Math.abs(v);
+      else ta += v;
+    });
+    labels.push(mk);
+    assets.push(ta);
+    debts.push(td);
+    netWorths.push(ta - td);
+  });
+
+  const ctx = canvas.getContext('2d');
+  charts['netWorthChart'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Assets', data: assets, borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.08)', fill: true, tension: 0.3, pointRadius: 3, pointHoverRadius: 5 },
+        { label: 'Debts', data: debts, borderColor: '#fb7185', backgroundColor: 'rgba(251,113,133,0.06)', fill: true, tension: 0.3, pointRadius: 3, pointHoverRadius: 5 },
+        { label: 'Net Worth', data: netWorths, borderColor: '#f6c90e', backgroundColor: 'transparent', fill: false, tension: 0.3, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6 }
+      ]
+    },
+    options: {
+      ...chartDefaults(),
+      plugins: {
+        ...chartDefaults().plugins,
+        legend: { display: true, position: 'top', labels: { color: '#8b9cb8', font: CHART_DEFAULTS.font, boxWidth: 12, padding: 16 } },
+        tooltip: { ...chartDefaults().plugins.tooltip, mode: 'index', intersect: false }
+      }
+    }
+  });
+}
+
+function renderCategoryChart() {
+  destroyChart('categoryChart');
+  const canvas = document.getElementById('categoryChart');
+  if (!canvas) return;
+  const latestBals = getLatestBalances();
+  const cats = { bank: 0, investment: 0, asset: 0 };
+  state.accounts.forEach(acc => {
+    if (acc.category === 'debt') return;
+    const b = latestBals[acc.id];
+    cats[acc.category] = (cats[acc.category] || 0) + (b ? b.value : 0);
+  });
+  const labels = ['Bank / Savings', 'Investments', 'Assets'];
+  const data = [cats.bank, cats.investment, cats.asset];
+  if (data.every(v => v === 0)) return;
+  const ctx = canvas.getContext('2d');
+  charts['categoryChart'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: ['#2dd4bf','#4a9eff','#34d399'], borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#8b9cb8', font: CHART_DEFAULTS.font, boxWidth: 10, padding: 12 } },
+        tooltip: { backgroundColor: '#21283a', borderColor: '#2d3748', borderWidth: 1, bodyFont: CHART_DEFAULTS.font, callbacks: { label: ctx => ' ' + fmtFull(ctx.parsed) } }
+      }
+    }
+  });
+}
+
+function renderAccountBreakdown() {
+  const el = document.getElementById('account-breakdown-list');
+  if (!el) return;
+  const latestBals = getLatestBalances();
+  if (!state.accounts.length) { el.innerHTML = '<div class="empty-state">No accounts. Go to the Accounts tab to add some.</div>'; return; }
+  let html = '<table class="data-table"><thead><tr><th>Account</th><th>Type</th><th class="text-right">Balance</th></tr></thead><tbody>';
+  state.accounts.forEach(acc => {
+    const b = latestBals[acc.id];
+    const v = b ? b.value : null;
+    const disp = v !== null ? fmtFull(v) : '—';
+    const neg = acc.category === 'debt';
+    html += `<tr>
+      <td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${categoryColor(acc.category)};margin-right:8px"></span>${acc.name}</td>
+      <td><span class="badge badge-${acc.category}">${acc.category}</span></td>
+      <td class="text-right mono ${neg?'text-negative':'text-positive'}">${disp}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function renderBalanceLog() {
+  const el = document.getElementById('balance-log');
+  if (!el) return;
+  if (!state.balances.length) { el.innerHTML = '<div class="empty-state">No balance entries yet.</div>'; return; }
+  const months = [...new Set(state.balances.map(b => monthKey(b.year, b.month)))].sort().reverse().slice(0, 12);
+  let html = '<table class="data-table"><thead><tr><th>Month</th>';
+  state.accounts.slice(0, 6).forEach(acc => html += `<th class="text-right">${acc.name}</th>`);
+  html += '</tr></thead><tbody>';
+  months.forEach(mk => {
+    const { year, month } = parseMonthKey(mk);
+    html += `<tr><td class="mono" style="color:var(--text-secondary)">${mk}</td>`;
+    state.accounts.slice(0, 6).forEach(acc => {
+      const v = getBalanceAtMonth(acc.id, year, month);
+      html += `<td class="text-right mono ${acc.category==='debt'?'text-negative':''}">${v !== null ? fmtFull(v) : '—'}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  if (state.accounts.length > 6) html += `<p class="hint" style="margin-top:8px">Showing first 6 accounts. All accounts are tracked.</p>`;
+  el.innerHTML = html;
+}
+
+
+function renderProjectionChart() {
+  destroyChart('projectionChart');
+  const canvas = document.getElementById('projectionChart');
+  if (!canvas) return;
+  const { currentAge, retirementAge } = state.meta;
+  const yearsLeft = Math.max(5, (retirementAge || 55) - (currentAge || 30) + 10);
+  const months = yearsLeft * 12;
+
+  const colors = ['#f6c90e','#4a9eff','#34d399','#fb7185','#a78bfa','#2dd4bf'];
+  const datasets = state.scenarios.map((sc, i) => {
+    const pts = buildProjection(sc.id, months);
+    return {
+      label: sc.name,
+      data: pts.map(p => ({ x: p.key, y: p.netWorth })),
+      borderColor: colors[i % colors.length],
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      borderWidth: sc.id === state.activeScenario ? 2.5 : 1.5,
+      borderDash: sc.id === state.activeScenario ? [] : [5, 3],
+      pointRadius: 0,
+      pointHoverRadius: 4
+    };
+  });
+
+  // Add retirement line
+  const now = new Date();
+  const retDate = new Date(now.getFullYear() + ((retirementAge||55) - (currentAge||30)), now.getMonth(), 1);
+  const retKey = monthKey(retDate.getFullYear(), retDate.getMonth()+1);
+
+  const { fireNumber } = computeCoastFIRE();
+
+  const ctx = canvas.getContext('2d');
+  charts['projectionChart'] = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      parsing: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#8b9cb8', font: CHART_DEFAULTS.font, boxWidth: 12 } },
+        tooltip: {
+          backgroundColor: '#21283a', borderColor: '#2d3748', borderWidth: 1,
+          titleFont: CHART_DEFAULTS.font, bodyFont: CHART_DEFAULTS.font, mode: 'index', intersect: false,
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtFull(ctx.parsed.y)}` }
+        },
+        annotation: undefined
+      },
+      scales: {
+        x: { type: 'category', grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, maxTicksLimit: 15 } },
+        y: { grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, callback: v => cur(v) } }
+      }
+    }
+  });
+}
+
+function renderContribList() {
+  const el = document.getElementById('contrib-list');
+  if (!el) return;
+  const sc = getScenario();
+  const accs = state.accounts.filter(a => a.category !== 'debt' && a.category !== 'asset');
+  if (!accs.length) { el.innerHTML = '<div class="empty-state">Add accounts first.</div>'; return; }
+  let html = '<table class="data-table"><thead><tr><th>Account</th><th class="text-right">Monthly</th><th class="text-right">Annual</th></tr></thead><tbody>';
+  let total = 0;
+  accs.forEach(acc => {
+    const c = getContribution(acc.id);
+    total += c;
+    const override = sc.contributions && sc.contributions[acc.id] !== undefined;
+    html += `<tr>
+      <td>${acc.name} ${override ? '<span style="color:var(--accent-gold);font-size:10px">★ override</span>' : ''}</td>
+      <td class="text-right mono text-positive">${fmtFull(c)}</td>
+      <td class="text-right mono" style="color:var(--text-secondary)">${fmtFull(c*12)}</td>
+    </tr>`;
+  });
+  html += `<tr><td style="border-top:1px solid var(--border-light);font-weight:600">Total</td><td class="text-right mono" style="border-top:1px solid var(--border-light);color:var(--accent-gold)">${fmtFull(total)}</td><td class="text-right mono" style="border-top:1px solid var(--border-light);color:var(--accent-gold)">${fmtFull(total*12)}</td></tr>`;
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function renderEventList() {
+  const el = document.getElementById('event-list');
+  if (!el) return;
+  const sc = getScenario();
+  const evs = sc.oneTimeEvents || [];
+  if (!evs.length) { el.innerHTML = '<div class="empty-state">No events yet. Bonuses, windfalls, or planned contributions.</div>'; return; }
+  let html = '<table class="data-table"><thead><tr><th>Label</th><th>Account</th><th>Date</th><th class="text-right">Amount</th><th></th></tr></thead><tbody>';
+  evs.forEach(ev => {
+    const acc = getAccountById(ev.accountId);
+    html += `<tr>
+      <td>${ev.label}</td>
+      <td style="color:var(--text-secondary)">${acc ? acc.name : '?'}</td>
+      <td class="mono" style="color:var(--text-secondary)">${ev.date}</td>
+      <td class="text-right mono text-positive">${fmtFull(ev.amount)}</td>
+      <td><button class="btn-icon" onclick="deleteEvent('${ev.id}')">✕</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function renderCoastFIRE() {
+  const { fireNumber, coastFireNumber, currentInvestable, yearsToRet } = computeCoastFIRE();
+  const { currentAge, retirementAge, avgReturn } = state.meta;
+
+  // Stats
+  const statEl = document.getElementById('coast-stat-row');
+  const progress = Math.min(100, (currentInvestable / coastFireNumber) * 100);
+  if (statEl) {
+    statEl.innerHTML = `
+      <div class="stat-box">
+        <div class="stat-label">Current Investable</div>
+        <div class="stat-value ${currentInvestable >= coastFireNumber ? 'positive' : 'gold'}">${cur(currentInvestable)}</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${progress.toFixed(1)}%"></div></div>
+        <div class="stat-sub">${progress.toFixed(1)}% of Coast FIRE</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Coast FIRE Number</div>
+        <div class="stat-value gold">${cur(coastFireNumber)}</div>
+        <div class="stat-sub">Stop contributing now & still retire</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">FIRE Number</div>
+        <div class="stat-value" style="color:var(--accent-blue)">${cur(fireNumber)}</div>
+        <div class="stat-sub">Target portfolio at retirement</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Years to Retirement</div>
+        <div class="stat-value" style="color:var(--text-secondary)">${yearsToRet}</div>
+        <div class="stat-sub">Age ${currentAge||30} → ${retirementAge||55}</div>
+      </div>`;
+  }
+
+  // Fire number display
+  const fireEl = document.getElementById('fire-number-display');
+  if (fireEl) {
+    const { retSpend, swr } = state.meta;
+    fireEl.innerHTML = `
+      <div class="fire-number">${fmtFull(fireNumber)}</div>
+      <div class="fire-sub">Based on ${fmtFull((retSpend||5000)*12)}/yr spend at ${swr||4}% withdrawal</div>
+      <hr class="divider">
+      <table class="data-table">
+        <tr><td style="color:var(--text-muted)">Annual Spend</td><td class="text-right mono">${fmtFull((retSpend||5000)*12)}</td></tr>
+        <tr><td style="color:var(--text-muted)">SWR</td><td class="text-right mono">${swr||4}%</td></tr>
+        <tr><td style="color:var(--text-muted)">Gap to FIRE</td><td class="text-right mono ${currentInvestable < fireNumber ? 'text-negative' : 'text-positive'}">${cur(Math.max(0, fireNumber - currentInvestable))}</td></tr>
+      </table>`;
+  }
+
+  // Coast FIRE display
+  const coastEl = document.getElementById('coast-fire-display');
+  if (coastEl) {
+    const reached = currentInvestable >= coastFireNumber;
+    coastEl.innerHTML = `
+      <div class="fire-number" style="color:${reached?'var(--positive)':'var(--accent-gold)'}">${fmtFull(coastFireNumber)}</div>
+      <div class="fire-sub">${reached ? '✓ Coast FIRE reached! Contributions are gravy.' : `${cur(Math.max(0, coastFireNumber - currentInvestable))} to go`}</div>
+      <hr class="divider">
+      <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">
+        If your investments reach <strong style="color:var(--accent-gold)">${fmtFull(coastFireNumber)}</strong> today and grow at 
+        <strong>${avgReturn||7}%</strong> annually with no additional contributions, 
+        they will reach <strong style="color:var(--accent-blue)">${fmtFull(fireNumber)}</strong> by age ${retirementAge||55}.
+      </p>`;
+  }
+
+  // Coast FIRE chart
+  renderCoastChart(coastFireNumber, fireNumber, yearsToRet);
+}
+
+function renderCoastChart(coastFireNumber, fireNumber, yearsToRet) {
+  destroyChart('coastChart');
+  const canvas = document.getElementById('coastChart');
+  if (!canvas) return;
+  const { currentAge, retirementAge, avgReturn } = state.meta;
+  const latestBals = getLatestBalances();
+  let currentInvestable = 0;
+  state.accounts.forEach(acc => {
+    if (acc.category === 'bank' || acc.category === 'investment') {
+      const b = latestBals[acc.id];
+      currentInvestable += b ? b.value : 0;
+    }
+  });
+
+  const r = (avgReturn || 7) / 100;
+  const labels = [], withContrib = [], withoutContrib = [], fireTarget = [];
+  const totalYears = (yearsToRet || 25) + 10;
+
+  // Total monthly contribution from default scenario
+  let monthlyContrib = 0;
+  state.accounts.forEach(acc => {
+    if (acc.category === 'bank' || acc.category === 'investment') monthlyContrib += getContribution(acc.id);
+  });
+
+  let wc = currentInvestable, nc = currentInvestable;
+  for (let y = 0; y <= totalYears; y++) {
+    const age = (currentAge || 30) + y;
+    labels.push('Age ' + age);
+    withContrib.push(Math.round(wc));
+    withoutContrib.push(Math.round(nc));
+    fireTarget.push(Math.round(fireNumber));
+    // Grow monthly for 12 months
+    for (let m = 0; m < 12; m++) {
+      wc = wc * (1 + r/12) + monthlyContrib;
+      nc = nc * (1 + r/12);
+    }
+  }
+
+  const ctx = canvas.getContext('2d');
+  charts['coastChart'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'With Contributions', data: withContrib, borderColor: '#4a9eff', backgroundColor: 'rgba(74,158,255,0.06)', fill: true, tension: 0.4, pointRadius: 0 },
+        { label: 'Without Contributions (Coast)', data: withoutContrib, borderColor: '#f6c90e', backgroundColor: 'rgba(246,201,14,0.05)', fill: true, tension: 0.4, pointRadius: 0 },
+        { label: 'FIRE Target', data: fireTarget, borderColor: '#34d399', borderDash: [8,4], backgroundColor: 'transparent', pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#8b9cb8', font: CHART_DEFAULTS.font, boxWidth: 12 } },
+        tooltip: { backgroundColor: '#21283a', borderColor: '#2d3748', borderWidth: 1, bodyFont: CHART_DEFAULTS.font, mode: 'index', intersect: false, callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtFull(ctx.parsed.y)}` } }
+      },
+      scales: {
+        x: { grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, maxTicksLimit: 10 } },
+        y: { grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, callback: v => cur(v) } }
+      }
+    }
+  });
+}
+
+function renderAccountsTable() {
+  const el = document.getElementById('accounts-table-wrap');
+  if (!el) return;
+  if (!state.accounts.length) { el.innerHTML = '<div class="empty-state">No accounts yet. Add your first account above.</div>'; return; }
+  const latestBals = getLatestBalances();
+  let html = '<table class="data-table" id="accounts-table"><thead><tr><th style="width:28px"></th><th>Account</th><th>Category</th><th>Sub-type</th><th class="text-right">Rate %</th><th class="text-right">Payment/Mo</th><th>Payoff / Notes</th><th></th></tr></thead><tbody id="accounts-tbody">';
+  state.accounts.forEach(acc => {
+    let payoffCell = '—';
+    if (acc.category === 'debt') {
+      const b = latestBals[acc.id];
+      if (b && b.value && acc.contrib) {
+        const sched = buildAmortSchedule(b.value, acc.rate || 0, acc.contrib);
+        if (sched.length) {
+          const payoffDate = new Date();
+          payoffDate.setMonth(payoffDate.getMonth() + sched.length);
+          const mo = payoffDate.toLocaleString('default', { month: 'short' });
+          const yr = payoffDate.getFullYear();
+          const totalInterest = sched.reduce((s, r) => s + r.interest, 0);
+          payoffCell = `<span style="color:var(--positive)">${mo} ${yr}</span> <span style="color:var(--text-muted);font-size:11px">(${sched.length} mo · ${cur(totalInterest)} interest)</span>`;
+        } else {
+          payoffCell = '<span style="color:var(--negative)">Payment ≤ interest — debt growing</span>';
+        }
+      } else if (b && b.value && !acc.contrib) {
+        payoffCell = '<span style="color:var(--text-muted)">No payment set</span>';
+      }
+    }
+    html += `<tr draggable="true" data-id="${acc.id}">
+      <td><span class="drag-handle" title="Drag to reorder">⠿</span></td>
+      <td><strong>${acc.name}</strong></td>
+      <td><span class="badge badge-${acc.category}">${acc.category}</span></td>
+      <td style="color:var(--text-secondary)">${acc.subtype || '—'}</td>
+      <td class="text-right mono">${acc.rate || 0}%</td>
+      <td class="text-right mono">${acc.contrib ? fmtFull(acc.contrib) : '—'}</td>
+      <td style="font-size:12px">${payoffCell}</td>
+      <td>
+        <button class="btn-icon" onclick="openAccountModal('${acc.id}')" title="Edit">✎</button>
+        <button class="btn-icon" onclick="deleteAccount('${acc.id}')" title="Delete" style="color:var(--negative)">✕</button>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+  initAccountDrag();
+}
+
+function initAccountDrag() {
+  const tbody = document.getElementById('accounts-tbody');
+  if (!tbody) return;
+  let dragSrcId = null;
+
+  tbody.querySelectorAll('tr[draggable]').forEach(row => {
+    row.addEventListener('dragstart', e => {
+      dragSrcId = row.dataset.id;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+      if (row.dataset.id !== dragSrcId) row.classList.add('drag-over');
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      const targetId = row.dataset.id;
+      if (!dragSrcId || dragSrcId === targetId) return;
+      const srcIdx = state.accounts.findIndex(a => a.id === dragSrcId);
+      const tgtIdx = state.accounts.findIndex(a => a.id === targetId);
+      if (srcIdx < 0 || tgtIdx < 0) return;
+      // Reorder in state
+      const [moved] = state.accounts.splice(srcIdx, 1);
+      state.accounts.splice(tgtIdx, 0, moved);
+      renderAll();
+    });
+  });
+}
+
+// ══════════════════════════════════════════════
+// MODAL HELPERS
+// ══════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close modal on backdrop click
+document.querySelectorAll('.modal-backdrop').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-backdrop.open').forEach(el => el.classList.remove('open'));
+});
+
+// ══════════════════════════════════════════════
+// LOCAL STORAGE AUTO-SAVE
+// ══════════════════════════════════════════════
+const LS_KEY = 'finance_dashboard_v1';
+
+function persistState() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e) { /* quota exceeded */ }
+}
+
+// Patch renderAll to auto-persist after every render
+const _renderAll = renderAll;
+renderAll = function() { _renderAll(); persistState(); };
+
+// ══════════════════════════════════════════════
+// INIT — load from localStorage if present
+// ══════════════════════════════════════════════
+(function() {
+  const saved = localStorage.getItem(LS_KEY);
+  if (saved) {
+    try {
+      state = JSON.parse(saved);
+      if (!state.scenarios) state.scenarios = [{ id: 'default', name: 'Base Case', contributions: {}, oneTimeEvents: [] }];
+      if (!state.activeScenario) state.activeScenario = state.scenarios[0].id;
+    } catch(e) { /* corrupt data, start fresh */ }
+  }
+  loadSettingsToUI();
+  renderAll();
+})();
+</script>
+</body>
+</html>
