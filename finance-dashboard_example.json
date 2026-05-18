@@ -1,0 +1,624 @@
+{
+  "meta": {
+    "currentAge": 32,
+    "retirementAge": 58,
+    "retSpend": 5500,
+    "inflationRate": 3,
+    "swr": 4,
+    "avgReturn": 6,
+    "userName": "Fred",
+    "currencySymbol": "$",
+    "birthYear": 1993,
+    "salary": 100000,
+    "taxRate": 10
+  },
+  "accounts": [
+    {
+      "id": "1dxrp95",
+      "name": "Bank1 Checking",
+      "category": "bank",
+      "subtype": "checking",
+      "rate": 0.1,
+      "contribType": "fixed",
+      "contribPct": 0,
+      "contrib": 0,
+      "baseMatchPct": 0,
+      "matchRate": 0,
+      "matchLimit": 0,
+      "forRetirement": false
+    },
+    {
+      "id": "b7tenok",
+      "name": "Bank1 Savings",
+      "category": "bank",
+      "subtype": "savings",
+      "rate": 0.1,
+      "contribType": "fixed",
+      "contribPct": 0,
+      "contrib": 0,
+      "baseMatchPct": 0,
+      "matchRate": 0,
+      "matchLimit": 0,
+      "forRetirement": false
+    },
+    {
+      "id": "tikb9zb",
+      "name": "Bank2 Savings",
+      "category": "bank",
+      "subtype": "checking",
+      "rate": 3.1,
+      "contribType": "fixed",
+      "contribPct": 0,
+      "contrib": 0,
+      "baseMatchPct": 0,
+      "matchRate": 0,
+      "matchLimit": 0,
+      "forRetirement": false
+    },
+    {
+      "id": "2vcy0lb",
+      "name": "Bank2 Emergency Fund",
+      "category": "bank",
+      "subtype": "savings",
+      "rate": 3.1,
+      "contribType": "fixed",
+      "contribPct": 0,
+      "contrib": 0,
+      "baseMatchPct": 0,
+      "matchRate": 0,
+      "matchLimit": 0,
+      "forRetirement": false
+    },
+    {
+      "id": "ucygv4z",
+      "name": "Bank3 Savings",
+      "category": "bank",
+      "subtype": "savings",
+      "rate": 4,
+      "contribType": "fixed",
+      "contribPct": 0,
+      "contrib": 0,
+      "baseMatchPct": 0,
+      "matchRate": 0,
+      "matchLimit": 0,
+      "forRetirement": false
+    },
+    {
+      "id": "yhm858k",
+      "name": "Current Job 401k",
+      "category": "retirement",
+      "subtype": "401k",
+      "rate": 6,
+      "contribType": "pct",
+      "contribPct": 7,
+      "contrib": 583.3333333333334,
+      "baseMatchPct": 4,
+      "matchRate": 100,
+      "matchLimit": 6,
+      "forRetirement": true
+    },
+    {
+      "id": "qujof7h",
+      "name": "Current Job HSA",
+      "category": "retirement",
+      "subtype": "hsa",
+      "rate": 6,
+      "contribType": "fixed",
+      "contribPct": 0,
+      "contrib": 367,
+      "baseMatchPct": 0,
+      "matchRate": 0,
+      "matchLimit": 0,
+      "forRetirement": true
+    },
+    {
+      "id": "yw07eav",
+      "name": "Current Job HSA Cash Account",
+      "category": "retirement",
+      "subtype": "hsa",
+      "rate": 0,
+      "contribType": "fixed",
+      "contribPct": 0,
+      "contrib": 0,
+      "baseMatchPct": 0,
+      "matchRate": 0,
+      "matchLimit": 0,
+      "forRetirement": true
+    },
+    {
+      "id": "r3m472w",
+      "name": "Personal Brokerage",
+      "category": "investment",
+      "subtype": "brokerage",
+      "rate": 6,
+      "contribType": "fixed",
+      "contribPct": 0,
+      "contrib": 500,
+      "baseMatchPct": 0,
+      "matchRate": 0,
+      "matchLimit": 0,
+      "forRetirement": true
+    },
+    {
+      "id": "c0r5b25",
+      "name": "Personal Roth IRA",
+      "category": "retirement",
+      "subtype": "roth",
+      "rate": 6,
+      "contribType": "fixed",
+      "contribPct": 0,
+      "contrib": 625,
+      "baseMatchPct": 0,
+      "matchRate": 0,
+      "matchLimit": 0,
+      "forRetirement": true
+    },
+    {
+      "id": "8xfd1ke",
+      "name": "House Value",
+      "category": "asset",
+      "subtype": "home",
+      "rate": 4,
+      "contribType": "fixed",
+      "contribPct": 0,
+      "contrib": 0,
+      "baseMatchPct": 0,
+      "matchRate": 0,
+      "matchLimit": 0,
+      "forRetirement": true
+    },
+    {
+      "id": "ym9790t",
+      "name": "Mortgage",
+      "category": "debt",
+      "subtype": "mortgage",
+      "rate": 2.9,
+      "contribType": "fixed",
+      "contribPct": 0,
+      "contrib": 759.87,
+      "baseMatchPct": 0,
+      "matchRate": 0,
+      "matchLimit": 0,
+      "forRetirement": true
+    },
+    {
+      "id": "4q5u21v",
+      "name": "Credit Card",
+      "category": "debt",
+      "subtype": "credit_card",
+      "rate": 0,
+      "contribType": "fixed",
+      "contribPct": 0,
+      "contrib": 0,
+      "baseMatchPct": 0,
+      "matchRate": 0,
+      "matchLimit": 0,
+      "forRetirement": true
+    }
+  ],
+  "balances": [
+    {
+      "accountId": "1dxrp95",
+      "year": 2022,
+      "month": 1,
+      "value": 4000
+    },
+    {
+      "accountId": "b7tenok",
+      "year": 2022,
+      "month": 1,
+      "value": 2000
+    },
+    {
+      "accountId": "tikb9zb",
+      "year": 2022,
+      "month": 1,
+      "value": 0
+    },
+    {
+      "accountId": "2vcy0lb",
+      "year": 2022,
+      "month": 1,
+      "value": 7000
+    },
+    {
+      "accountId": "ucygv4z",
+      "year": 2022,
+      "month": 1,
+      "value": 8000
+    },
+    {
+      "accountId": "yhm858k",
+      "year": 2022,
+      "month": 1,
+      "value": 3000
+    },
+    {
+      "accountId": "r3m472w",
+      "year": 2022,
+      "month": 1,
+      "value": 3000
+    },
+    {
+      "accountId": "c0r5b25",
+      "year": 2022,
+      "month": 1,
+      "value": 5000
+    },
+    {
+      "accountId": "yw07eav",
+      "year": 2022,
+      "month": 1,
+      "value": 500
+    },
+    {
+      "accountId": "8xfd1ke",
+      "year": 2022,
+      "month": 1,
+      "value": 200000
+    },
+    {
+      "accountId": "ym9790t",
+      "year": 2022,
+      "month": 1,
+      "value": -170000
+    },
+    {
+      "accountId": "4q5u21v",
+      "year": 2022,
+      "month": 1,
+      "value": -200
+    },
+    {
+      "accountId": "1dxrp95",
+      "year": 2023,
+      "month": 1,
+      "value": 4000
+    },
+    {
+      "accountId": "b7tenok",
+      "year": 2023,
+      "month": 1,
+      "value": 3000
+    },
+    {
+      "accountId": "2vcy0lb",
+      "year": 2023,
+      "month": 1,
+      "value": 7000
+    },
+    {
+      "accountId": "ucygv4z",
+      "year": 2023,
+      "month": 1,
+      "value": 10000
+    },
+    {
+      "accountId": "yhm858k",
+      "year": 2023,
+      "month": 1,
+      "value": 15000
+    },
+    {
+      "accountId": "r3m472w",
+      "year": 2023,
+      "month": 1,
+      "value": 10000
+    },
+    {
+      "accountId": "c0r5b25",
+      "year": 2023,
+      "month": 1,
+      "value": 10000
+    },
+    {
+      "accountId": "qujof7h",
+      "year": 2023,
+      "month": 1,
+      "value": 2500
+    },
+    {
+      "accountId": "yw07eav",
+      "year": 2023,
+      "month": 1,
+      "value": 500
+    },
+    {
+      "accountId": "8xfd1ke",
+      "year": 2023,
+      "month": 1,
+      "value": 210000
+    },
+    {
+      "accountId": "ym9790t",
+      "year": 2023,
+      "month": 1,
+      "value": -163000
+    },
+    {
+      "accountId": "4q5u21v",
+      "year": 2023,
+      "month": 1,
+      "value": -1400
+    },
+    {
+      "accountId": "1dxrp95",
+      "year": 2024,
+      "month": 1,
+      "value": 4000
+    },
+    {
+      "accountId": "b7tenok",
+      "year": 2024,
+      "month": 1,
+      "value": 1000
+    },
+    {
+      "accountId": "2vcy0lb",
+      "year": 2024,
+      "month": 1,
+      "value": 7000
+    },
+    {
+      "accountId": "ucygv4z",
+      "year": 2024,
+      "month": 1,
+      "value": 10800
+    },
+    {
+      "accountId": "yhm858k",
+      "year": 2024,
+      "month": 1,
+      "value": 30000
+    },
+    {
+      "accountId": "r3m472w",
+      "year": 2024,
+      "month": 1,
+      "value": 20000
+    },
+    {
+      "accountId": "c0r5b25",
+      "year": 2024,
+      "month": 1,
+      "value": 20000
+    },
+    {
+      "accountId": "qujof7h",
+      "year": 2024,
+      "month": 1,
+      "value": 5000
+    },
+    {
+      "accountId": "yw07eav",
+      "year": 2024,
+      "month": 1,
+      "value": 500
+    },
+    {
+      "accountId": "8xfd1ke",
+      "year": 2024,
+      "month": 1,
+      "value": 220000
+    },
+    {
+      "accountId": "ym9790t",
+      "year": 2024,
+      "month": 1,
+      "value": -162000
+    },
+    {
+      "accountId": "4q5u21v",
+      "year": 2024,
+      "month": 1,
+      "value": -500
+    },
+    {
+      "accountId": "1dxrp95",
+      "year": 2025,
+      "month": 1,
+      "value": 4000
+    },
+    {
+      "accountId": "b7tenok",
+      "year": 2025,
+      "month": 1,
+      "value": 800
+    },
+    {
+      "accountId": "tikb9zb",
+      "year": 2025,
+      "month": 1,
+      "value": 1597
+    },
+    {
+      "accountId": "2vcy0lb",
+      "year": 2025,
+      "month": 1,
+      "value": 8100
+    },
+    {
+      "accountId": "ucygv4z",
+      "year": 2025,
+      "month": 1,
+      "value": 11100
+    },
+    {
+      "accountId": "yhm858k",
+      "year": 2025,
+      "month": 1,
+      "value": 40000
+    },
+    {
+      "accountId": "r3m472w",
+      "year": 2025,
+      "month": 1,
+      "value": 25000
+    },
+    {
+      "accountId": "c0r5b25",
+      "year": 2025,
+      "month": 1,
+      "value": 25000
+    },
+    {
+      "accountId": "qujof7h",
+      "year": 2025,
+      "month": 1,
+      "value": 10000
+    },
+    {
+      "accountId": "yw07eav",
+      "year": 2025,
+      "month": 1,
+      "value": 500
+    },
+    {
+      "accountId": "8xfd1ke",
+      "year": 2025,
+      "month": 1,
+      "value": 225000
+    },
+    {
+      "accountId": "ym9790t",
+      "year": 2025,
+      "month": 1,
+      "value": -158000
+    },
+    {
+      "accountId": "4q5u21v",
+      "year": 2025,
+      "month": 1,
+      "value": -1200
+    },
+    {
+      "accountId": "1dxrp95",
+      "year": 2026,
+      "month": 1,
+      "value": 5000
+    },
+    {
+      "accountId": "b7tenok",
+      "year": 2026,
+      "month": 1,
+      "value": 800
+    },
+    {
+      "accountId": "tikb9zb",
+      "year": 2026,
+      "month": 1,
+      "value": 2500
+    },
+    {
+      "accountId": "2vcy0lb",
+      "year": 2026,
+      "month": 1,
+      "value": 8500
+    },
+    {
+      "accountId": "ucygv4z",
+      "year": 2026,
+      "month": 1,
+      "value": 11520
+    },
+    {
+      "accountId": "yhm858k",
+      "year": 2026,
+      "month": 1,
+      "value": 60000
+    },
+    {
+      "accountId": "r3m472w",
+      "year": 2026,
+      "month": 1,
+      "value": 30000
+    },
+    {
+      "accountId": "c0r5b25",
+      "year": 2026,
+      "month": 1,
+      "value": 30000
+    },
+    {
+      "accountId": "qujof7h",
+      "year": 2026,
+      "month": 1,
+      "value": 15000
+    },
+    {
+      "accountId": "yw07eav",
+      "year": 2026,
+      "month": 1,
+      "value": 500
+    },
+    {
+      "accountId": "8xfd1ke",
+      "year": 2026,
+      "month": 1,
+      "value": 230000
+    },
+    {
+      "accountId": "ym9790t",
+      "year": 2026,
+      "month": 1,
+      "value": -155000
+    },
+    {
+      "accountId": "4q5u21v",
+      "year": 2026,
+      "month": 1,
+      "value": -1000
+    }
+  ],
+  "oneTimeEvents": [],
+  "scenarios": [
+    {
+      "id": "default",
+      "name": "Base Case",
+      "contributions": {},
+      "oneTimeEvents": []
+    },
+    {
+      "id": "6m4geyq",
+      "name": "Scenario 2",
+      "contributions": {},
+      "oneTimeEvents": []
+    }
+  ],
+  "activeScenario": "default",
+  "coastSnapshots": [
+    {
+      "id": "mkxrayw",
+      "label": "May 2026 Plan",
+      "createdAt": "2026-05",
+      "birthYear": 1993,
+      "retirementAge": 58,
+      "retSpend": 5500,
+      "swr": 4,
+      "avgReturn": 5.977859778597786,
+      "inflationRate": 3,
+      "portfolioValue": 135500,
+      "monthlyContrib": 2908.666666666667,
+      "fireNumber": 1833333.3333333333,
+      "coastFireNumber": 429400.7685187214,
+      "coastAge": 44.333333333333336
+    }
+  ],
+  "fireSnapshots": [
+    {
+      "id": "7p6csq9",
+      "label": "Jan 2024 Plan",
+      "createdAt": "2024-01",
+      "birthYear": 1993,
+      "retirementAge": 58,
+      "retSpend": 5500,
+      "swr": 4,
+      "avgReturn": 5.9784172661870505,
+      "inflationRate": 3,
+      "portfolioValue": 109000,
+      "monthlyContrib": 2908.666666666667,
+      "fireNumber": 1833333.3333333333,
+      "fireAge": 53.25
+    }
+  ]
+}

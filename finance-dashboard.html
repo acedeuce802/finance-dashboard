@@ -102,6 +102,23 @@ input[type=file]{display:none;}
 .drag-handle:active{cursor:grabbing;}
 tr.drag-over td{background:rgba(246,201,14,0.06);border-top:2px solid var(--accent-gold);}
 tr.dragging{opacity:0.4;}
+.about-tab-bar{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid var(--border);}
+.about-tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);font-family:var(--font-sans);font-size:13px;font-weight:500;padding:10px 20px;cursor:pointer;transition:all .15s;margin-bottom:-1px;letter-spacing:.02em;}
+.about-tab-btn:hover{color:var(--text-primary);}
+.about-tab-btn.active{color:var(--accent-gold);border-bottom-color:var(--accent-gold);}
+.about-panel{display:none;}.about-panel.active{display:block;animation:fadeIn .2s ease;}
+.about-step{display:flex;gap:14px;margin-bottom:14px;}
+.about-step-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(246,201,14,.12);border:1px solid rgba(246,201,14,.25);color:var(--accent-gold);font-family:var(--font-mono);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;}
+.about-step-body{flex:1;padding-top:2px;}
+.example-box{background:var(--bg-raised);border:1px solid var(--border-light);border-radius:var(--radius);padding:16px;}
+.example-box .ex-title{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent-gold);margin-bottom:10px;}
+.kv-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(45,55,72,.4);font-size:13px;}
+.kv-row:last-child{border-bottom:none;}
+.kv-key{color:var(--text-secondary);}
+.kv-val{font-family:var(--font-mono);color:var(--text-primary);}
+.about-callout{background:rgba(246,201,14,.05);border:1px solid rgba(246,201,14,.18);border-radius:var(--radius);padding:13px 16px;margin:14px 0;font-size:13px;color:var(--text-secondary);line-height:1.6;}
+.about-callout strong{color:var(--accent-gold);}
+.about-tag{display:inline-block;font-family:var(--font-mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:3px;margin-bottom:4px;}
 </style>
 </head>
 <body>
@@ -116,6 +133,7 @@ tr.dragging{opacity:0.4;}
     <button class="nav-tab" onclick="showPage('coastfire')">Coast FIRE</button>
     <button class="nav-tab" onclick="showPage('accounts')">Accounts</button>
     <button class="nav-tab" onclick="showPage('settings')">Settings</button>
+    <button class="nav-tab" onclick="showPage('about')">About</button>
   </div>
   <div class="nav-actions">
     <button class="btn btn-ghost btn-sm" onclick="loadFile()">Load JSON</button>
@@ -422,6 +440,316 @@ tr.dragging{opacity:0.4;}
 
 
 <!-- ══════════════════════════════════════════════
+     PAGE: ABOUT
+══════════════════════════════════════════════ -->
+<div class="page" id="page-about">
+  <div class="about-tab-bar">
+    <button class="about-tab-btn active" data-tab="overview" onclick="showAboutTab('overview')">Overview</button>
+    <button class="about-tab-btn" data-tab="fire-guide" onclick="showAboutTab('fire-guide')">FIRE Guide</button>
+    <button class="about-tab-btn" data-tab="coast-guide" onclick="showAboutTab('coast-guide')">Coast FIRE Guide</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="about-panel active" id="about-overview">
+    <div class="grid-2 section-gap">
+      <div>
+        <div class="card mb-6">
+          <div class="card-header"><span class="card-title">What is this?</span></div>
+          <p style="color:var(--text-secondary);font-size:14px;line-height:1.75">
+            A <strong style="color:var(--text-primary)">personal finance tracker</strong> built as a single HTML file — no account, no server, no subscription. Everything runs in your browser and saves to localStorage. Export a JSON backup anytime; load it back in any browser to pick up where you left off.
+          </p>
+          <p style="color:var(--text-secondary);font-size:14px;line-height:1.75;margin-top:12px">
+            The focus is on <strong style="color:var(--text-primary)">net worth growth over time</strong> and two retirement planning frameworks: <strong style="color:var(--accent-gold)">Traditional FIRE</strong> — when can you retire? — and <strong style="color:var(--accent-gold)">Coast FIRE</strong> — when can you stop contributing?
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Recommended Workflow</span></div>
+          <div style="margin-top:4px">
+            <div class="about-step">
+              <div class="about-step-num">1</div>
+              <div class="about-step-body" style="color:var(--text-secondary);font-size:13px">Add your accounts on the <strong style="color:var(--text-primary)">Accounts</strong> tab — checking, savings, 401(k), brokerage, debts, etc.</div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">2</div>
+              <div class="about-step-body" style="color:var(--text-secondary);font-size:13px">Set your name, birth year, and salary on the <strong style="color:var(--text-primary)">Settings</strong> tab.</div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">3</div>
+              <div class="about-step-body" style="color:var(--text-secondary);font-size:13px">Enter your first balance snapshot via <strong style="color:var(--text-primary)">+ Add Month Snapshot</strong> on the Dashboard.</div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">4</div>
+              <div class="about-step-body" style="color:var(--text-secondary);font-size:13px">Configure your retirement targets on the <strong style="color:var(--text-primary)">FIRE</strong> or <strong style="color:var(--text-primary)">Coast FIRE</strong> tabs.</div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">5</div>
+              <div class="about-step-body" style="color:var(--text-secondary);font-size:13px">Export a <strong style="color:var(--text-primary)">Save JSON</strong> backup after every monthly entry and store it somewhere safe.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Tab Overview</span></div>
+          <div style="display:flex;flex-direction:column;gap:16px;margin-top:4px">
+            <div>
+              <div class="about-tag" style="background:rgba(45,212,191,.1);color:var(--bank-color)">Dashboard</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Net worth chart, category donut, account balances, and monthly balance log. Your home base for recording actuals each month.</div>
+            </div>
+            <hr class="divider" style="margin:0">
+            <div>
+              <div class="about-tag" style="background:rgba(74,158,255,.1);color:var(--accent-blue)">Projections</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Month-by-month net worth forecast, debt payoff timelines, one-time events (bonuses, windfalls), and scenarios to model contribution changes.</div>
+            </div>
+            <hr class="divider" style="margin:0">
+            <div>
+              <div class="about-tag" style="background:rgba(52,211,153,.1);color:var(--positive)">FIRE</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Finds the earliest age your portfolio hits your FIRE number, assuming you keep contributing at your current rate until then.</div>
+            </div>
+            <hr class="divider" style="margin:0">
+            <div>
+              <div class="about-tag" style="background:rgba(246,201,14,.1);color:var(--accent-gold)">Coast FIRE</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Finds the age at which you can stop contributing entirely and let compounding carry your portfolio to the FIRE number by retirement.</div>
+            </div>
+            <hr class="divider" style="margin:0">
+            <div>
+              <div class="about-tag" style="background:rgba(167,139,250,.1);color:var(--retirement-color)">Accounts</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Create, edit, and reorder accounts. Set return rates, contributions, employer match, and choose which accounts count toward retirement math.</div>
+            </div>
+            <hr class="divider" style="margin:0">
+            <div>
+              <div class="about-tag" style="background:rgba(139,156,184,.1);color:var(--text-secondary)">Settings</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Name, currency symbol, salary, birth year. Export / import / clear your data.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIRE GUIDE -->
+  <div class="about-panel" id="about-fire-guide">
+    <div class="grid-2 section-gap">
+      <div>
+        <div class="card mb-6">
+          <div class="card-header"><span class="card-title">What is Traditional FIRE?</span></div>
+          <p style="color:var(--text-secondary);font-size:14px;line-height:1.75">
+            <strong style="color:var(--accent-gold)">FIRE</strong> — Financial Independence, Retire Early — is built on one idea: once your portfolio is large enough to fund your lifestyle indefinitely via investment returns, you can stop working. The FIRE tab answers: <strong style="color:var(--text-primary)">at what age does that happen?</strong>
+          </p>
+          <div class="about-callout">
+            <strong>The FIRE Number</strong><br>
+            Annual spending ÷ Safe Withdrawal Rate. At a 4% SWR you need 25× your yearly expenses. Spending $60,000/year means a $1,500,000 FIRE number.
+          </div>
+          <div class="about-callout">
+            <strong>Tax Adjustment</strong><br>
+            If your accounts are mostly pre-tax (401k, Traditional IRA), withdrawals will be taxed. Enter an effective tax rate and the FIRE number is grossed up — you need more than 25× take-home spend to actually cover your lifestyle after taxes.
+          </div>
+          <div class="about-callout" style="border-color:rgba(74,158,255,.25);background:rgba(74,158,255,.05)">
+            <strong style="color:var(--accent-blue)">How the simulation works</strong><br>
+            The app grows each account month-by-month at its own return rate, adding contributions and employer match each month. It stops the clock the first month your total crosses the FIRE number — that's your earliest FIRE age.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">How to Use the FIRE Tab</span></div>
+          <div style="margin-top:4px">
+            <div class="about-step">
+              <div class="about-step-num">1</div>
+              <div class="about-step-body">
+                <div style="font-size:13px;color:var(--text-primary);font-weight:500;margin-bottom:2px">Set your monthly spend</div>
+                <div style="font-size:12px;color:var(--text-muted)">What you expect to spend per month in retirement, in today's dollars.</div>
+              </div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">2</div>
+              <div class="about-step-body">
+                <div style="font-size:13px;color:var(--text-primary);font-weight:500;margin-bottom:2px">Configure SWR and average return</div>
+                <div style="font-size:12px;color:var(--text-muted)">4% SWR and 7% return are common starting points. Lower SWR = larger, safer target. Higher return = faster growth.</div>
+              </div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">3</div>
+              <div class="about-step-body">
+                <div style="font-size:13px;color:var(--text-primary);font-weight:500;margin-bottom:2px">Set an effective tax rate (optional)</div>
+                <div style="font-size:12px;color:var(--text-muted)">Mostly Roth? Use 0–5%. Mostly traditional pre-tax? Use 20–30%. Mixed? 10–20%.</div>
+              </div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">4</div>
+              <div class="about-step-body">
+                <div style="font-size:13px;color:var(--text-primary);font-weight:500;margin-bottom:2px">Mark accounts for retirement</div>
+                <div style="font-size:12px;color:var(--text-muted)">On the Accounts tab, check "Include in retirement calculations" for each account that counts. Exclude short-term buckets like emergency funds.</div>
+              </div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">5</div>
+              <div class="about-step-body">
+                <div style="font-size:13px;color:var(--text-primary);font-weight:500;margin-bottom:2px">Read your earliest FIRE age</div>
+                <div style="font-size:12px;color:var(--text-muted)">The chart is blue while contributing, turns green when the portfolio crosses the FIRE number. The stat at the top shows your earliest retirement age.</div>
+              </div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">6</div>
+              <div class="about-step-body">
+                <div style="font-size:13px;color:var(--text-primary);font-weight:500;margin-bottom:2px">Save a Plan Snapshot</div>
+                <div style="font-size:12px;color:var(--text-muted)">Lock in today's projection. Revisit months later — the snapshot compares your planned trajectory against actual balances and tells you if you're on track.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Worked Example</span></div>
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6">A 32-year-old with solid savings rate wants to know their earliest retirement age.</p>
+
+          <div class="example-box mb-4">
+            <div class="ex-title">Inputs</div>
+            <div class="kv-row"><span class="kv-key">Current age</span><span class="kv-val">32</span></div>
+            <div class="kv-row"><span class="kv-key">Monthly spend in retirement</span><span class="kv-val">$5,000</span></div>
+            <div class="kv-row"><span class="kv-key">Safe withdrawal rate</span><span class="kv-val">4%</span></div>
+            <div class="kv-row"><span class="kv-key">Effective tax rate</span><span class="kv-val">15%</span></div>
+            <div class="kv-row"><span class="kv-key">Expected portfolio return</span><span class="kv-val">7% / yr</span></div>
+          </div>
+
+          <div class="example-box mb-4">
+            <div class="ex-title">FIRE Number Calculation</div>
+            <div class="kv-row"><span class="kv-key">Annual spend</span><span class="kv-val">$60,000</span></div>
+            <div class="kv-row"><span class="kv-key">Gross-up for taxes (÷ 0.85)</span><span class="kv-val">$70,588</span></div>
+            <div class="kv-row"><span class="kv-key">FIRE number (÷ 4% SWR)</span><span class="kv-val" style="color:var(--accent-gold)">$1,764,706</span></div>
+          </div>
+
+          <div class="example-box mb-4">
+            <div class="ex-title">Retirement Accounts</div>
+            <div class="kv-row"><span class="kv-key">Roth IRA balance</span><span class="kv-val">$28,000</span></div>
+            <div class="kv-row"><span class="kv-key">401(k) balance</span><span class="kv-val">$62,000</span></div>
+            <div class="kv-row"><span class="kv-key">Brokerage balance</span><span class="kv-val">$15,000</span></div>
+            <div class="kv-row"><span class="kv-key">Monthly contributions</span><span class="kv-val">$2,400</span></div>
+            <div class="kv-row"><span class="kv-key">Monthly employer match</span><span class="kv-val">$600</span></div>
+            <div class="kv-row"><span class="kv-key">Total monthly added</span><span class="kv-val">$3,000</span></div>
+          </div>
+
+          <div class="about-callout" style="margin:0">
+            <strong>Result: FIRE at age 52</strong><br>
+            Starting from $105,000 and adding $3,000/month, the portfolio crosses $1,764,706 after 20 years. The chart turns green at that point. To retire earlier: increase contributions, lower target spend, or accept a higher return assumption.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COAST FIRE GUIDE -->
+  <div class="about-panel" id="about-coast-guide">
+    <div class="grid-2 section-gap">
+      <div>
+        <div class="card mb-6">
+          <div class="card-header"><span class="card-title">What is Coast FIRE?</span></div>
+          <p style="color:var(--text-secondary);font-size:14px;line-height:1.75">
+            Coast FIRE asks a different question: <strong style="color:var(--text-primary)">at what age can you stop contributing</strong> to your portfolio and let compounding alone carry it to your full FIRE number by retirement?
+          </p>
+          <p style="color:var(--text-secondary);font-size:14px;line-height:1.75;margin-top:12px">
+            Once you've hit your coast number, you no longer need to save — you just need to cover living expenses. Many people use this milestone to shift to part-time work, a lower-stress career, or passion projects.
+          </p>
+          <div class="about-callout">
+            <strong>The Coast Number</strong><br>
+            FIRE Number ÷ (1 + return rate)<sup>years until retirement</sup>. The further you are from retirement, the smaller the coast number — compounding does proportionally more work.
+          </div>
+          <div class="about-callout">
+            <strong>Coast vs. Traditional FIRE</strong><br>
+            Reaching Coast FIRE does <em>not</em> mean you retire. You still need income to cover expenses from coast age to retirement age. The freedom is that income no longer needs to include savings — just living costs.
+          </div>
+          <div class="about-callout" style="border-color:rgba(74,158,255,.25);background:rgba(74,158,255,.05)">
+            <strong style="color:var(--accent-blue)">How the simulation works</strong><br>
+            Each month, the app computes the coast number for that future age (FIRE number discounted back by remaining years) and checks whether your current portfolio has crossed it. The first month it does is your Coast FIRE age.
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">How to Use the Coast FIRE Tab</span></div>
+          <div style="margin-top:4px">
+            <div class="about-step">
+              <div class="about-step-num">1</div>
+              <div class="about-step-body">
+                <div style="font-size:13px;color:var(--text-primary);font-weight:500;margin-bottom:2px">Set your target retirement age</div>
+                <div style="font-size:12px;color:var(--text-muted)">The age you want to fully retire — this is the end point compounding grows toward. Common choices: 55, 60, or 65.</div>
+              </div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">2</div>
+              <div class="about-step-body">
+                <div style="font-size:13px;color:var(--text-primary);font-weight:500;margin-bottom:2px">Enter monthly spend and SWR</div>
+                <div style="font-size:12px;color:var(--text-muted)">Same inputs as the FIRE tab — these define your full FIRE number, which Coast FIRE works backward from.</div>
+              </div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">3</div>
+              <div class="about-step-body">
+                <div style="font-size:13px;color:var(--text-primary);font-weight:500;margin-bottom:2px">Set your expected return and tax rate</div>
+                <div style="font-size:12px;color:var(--text-muted)">The return rate during coasting is the key lever — a higher assumed return means a smaller coast number is needed today.</div>
+              </div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">4</div>
+              <div class="about-step-body">
+                <div style="font-size:13px;color:var(--text-primary);font-weight:500;margin-bottom:2px">Read your Coast FIRE age</div>
+                <div style="font-size:12px;color:var(--text-muted)">The chart is blue while contributing and gold during the coasting phase. The stat at the top shows the age you can stop contributing.</div>
+              </div>
+            </div>
+            <div class="about-step">
+              <div class="about-step-num">5</div>
+              <div class="about-step-body">
+                <div style="font-size:13px;color:var(--text-primary);font-weight:500;margin-bottom:2px">Save a Plan Snapshot</div>
+                <div style="font-size:12px;color:var(--text-muted)">Lock in today's numbers. Return months later to see if you're ahead or behind — the snapshot shows planned vs. actual portfolio and recalculates your coast age.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Worked Example</span></div>
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6">The same 32-year-old, this time asking: "when can I <em>stop contributing</em>?"</p>
+
+          <div class="example-box mb-4">
+            <div class="ex-title">Inputs</div>
+            <div class="kv-row"><span class="kv-key">Current age</span><span class="kv-val">32</span></div>
+            <div class="kv-row"><span class="kv-key">Target retirement age</span><span class="kv-val">60</span></div>
+            <div class="kv-row"><span class="kv-key">Current investable portfolio</span><span class="kv-val">$105,000</span></div>
+            <div class="kv-row"><span class="kv-key">Monthly contributions + match</span><span class="kv-val">$3,000</span></div>
+            <div class="kv-row"><span class="kv-key">FIRE number (from FIRE tab)</span><span class="kv-val" style="color:var(--accent-gold)">$1,764,706</span></div>
+            <div class="kv-row"><span class="kv-key">Expected return</span><span class="kv-val">7% / yr</span></div>
+          </div>
+
+          <div class="example-box mb-4">
+            <div class="ex-title">Coast Number at Various Ages</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;font-style:italic">FIRE number ÷ (1.07)<sup>years remaining to 60</sup></div>
+            <div class="kv-row"><span class="kv-key">Age 35 — 25 yrs remaining</span><span class="kv-val">$325,000</span></div>
+            <div class="kv-row"><span class="kv-key">Age 38 — 22 yrs remaining</span><span class="kv-val">$398,000</span></div>
+            <div class="kv-row"><span class="kv-key">Age 40 — 20 yrs remaining</span><span class="kv-val">$456,000</span></div>
+            <div class="kv-row"><span class="kv-key">Age 45 — 15 yrs remaining</span><span class="kv-val">$640,000</span></div>
+          </div>
+
+          <div class="example-box mb-4">
+            <div class="ex-title">Portfolio Growth Projection</div>
+            <div class="kv-row"><span class="kv-key">Portfolio at age 35</span><span class="kv-val">$305,000</span></div>
+            <div class="kv-row"><span class="kv-key">Portfolio at age 38</span><span class="kv-val">$415,000</span></div>
+            <div class="kv-row" style="background:rgba(246,201,14,.06);margin:0 -4px;padding:5px 4px;border-radius:4px"><span class="kv-key" style="color:var(--accent-gold)">&#x2714; Crosses coast number</span><span class="kv-val" style="color:var(--accent-gold)">Age 38</span></div>
+          </div>
+
+          <div class="about-callout" style="margin:0">
+            <strong>Result: Coast FIRE at age 38</strong><br>
+            The portfolio (~$415K) crosses the coast number (~$398K) at age 38. From that point, zero contributions are needed — it compounds from $415K to $1,764,706 by age 60 entirely on its own at 7%.
+          </div>
+
+          <div style="font-size:12px;color:var(--text-muted);margin-top:14px;line-height:1.65;padding:12px;background:var(--bg-raised);border-radius:var(--radius)">
+            <strong style="color:var(--text-secondary)">What happens between age 38 and 60?</strong><br>
+            You still need to cover living expenses for 22 years — but now your income only needs to cover day-to-day costs, not retirement savings. A part-time job, freelance work, or a low-stress career becomes financially viable well before traditional retirement.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
      MODALS
 ══════════════════════════════════════════════ -->
 
@@ -525,6 +853,19 @@ tr.dragging{opacity:0.4;}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-balance')">Cancel</button>
       <button class="btn btn-primary" onclick="saveBalances()">Save Snapshot</button>
+    </div>
+  </div>
+</div>
+
+<!-- Backup Prompt Modal -->
+<div class="modal-backdrop" id="modal-backup-prompt">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title">Save Backup?</div>
+    <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:4px">Balance snapshot saved successfully.</p>
+    <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:20px">Export a JSON backup now?</p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-backup-prompt')">Not now</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-backup-prompt');saveFile()">Save JSON</button>
     </div>
   </div>
 </div>
@@ -677,6 +1018,11 @@ function getBalanceAtMonth(accountId, year, month) {
 // ══════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════
+function showAboutTab(name) {
+  document.querySelectorAll('.about-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.about-panel').forEach(p => p.classList.toggle('active', p.id === 'about-' + name));
+}
+
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -1030,6 +1376,7 @@ function saveBalances() {
   });
   closeModal('modal-balance');
   renderAll();
+  openModal('modal-backup-prompt');
 }
 
 // ══════════════════════════════════════════════
@@ -2735,9 +3082,13 @@ function renderDebtPayoff() {
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-// Close modal on backdrop click
+// Close modal only when both mousedown AND click originate on the backdrop itself,
+// so a swipe that starts inside the modal and releases outside doesn't close it.
 document.querySelectorAll('.modal-backdrop').forEach(el => {
-  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+  let downOnBackdrop = false;
+  el.addEventListener('mousedown',  e => { downOnBackdrop = e.target === el; });
+  el.addEventListener('touchstart', e => { downOnBackdrop = e.target === el; }, { passive: true });
+  el.addEventListener('click', e => { if (e.target === el && downOnBackdrop) el.classList.remove('open'); });
 });
 
 // Escape key
