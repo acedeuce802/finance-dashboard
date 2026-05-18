@@ -13,7 +13,7 @@
   --text-primary:#e2e8f0;--text-secondary:#8b9cb8;--text-muted:#536480;
   --accent-gold:#f6c90e;--accent-blue:#4a9eff;--accent-teal:#2dd4bf;
   --positive:#34d399;--negative:#f87171;
-  --bank-color:#2dd4bf;--investment-color:#4a9eff;--asset-color:#34d399;--debt-color:#fb7185;
+  --bank-color:#2dd4bf;--investment-color:#4a9eff;--asset-color:#f97316;--debt-color:#fb7185;--retirement-color:#a78bfa;
   --font-mono:'IBM Plex Mono',monospace;--font-sans:'IBM Plex Sans',sans-serif;
   --radius:8px;--radius-lg:12px;--shadow:0 4px 24px rgba(0,0,0,0.4);
 }
@@ -64,6 +64,7 @@ nav{background:var(--bg-surface);border-bottom:1px solid var(--border);display:f
 .badge-investment{background:rgba(74,158,255,.12);color:var(--investment-color);border:1px solid rgba(74,158,255,.25);}
 .badge-asset{background:rgba(52,211,153,.12);color:var(--asset-color);border:1px solid rgba(52,211,153,.25);}
 .badge-debt{background:rgba(248,113,113,.12);color:var(--debt-color);border:1px solid rgba(248,113,113,.25);}
+.badge-retirement{background:rgba(167,139,250,.12);color:var(--retirement-color);border:1px solid rgba(167,139,250,.25);}
 .form-group{margin-bottom:16px;}
 .form-label{display:block;font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-secondary);margin-bottom:6px;}
 .form-input,.form-select{width:100%;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;padding:8px 12px;transition:border-color .15s;outline:none;}
@@ -111,6 +112,7 @@ tr.dragging{opacity:0.4;}
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('dashboard')">Dashboard</button>
     <button class="nav-tab" onclick="showPage('projections')">Projections</button>
+    <button class="nav-tab" onclick="showPage('fire')">FIRE</button>
     <button class="nav-tab" onclick="showPage('coastfire')">Coast FIRE</button>
     <button class="nav-tab" onclick="showPage('accounts')">Accounts</button>
     <button class="nav-tab" onclick="showPage('settings')">Settings</button>
@@ -132,7 +134,13 @@ tr.dragging{opacity:0.4;}
     <div class="card">
       <div class="card-header">
         <span class="card-title">Net Worth History</span>
-        <div class="card-actions">
+        <div class="card-actions" style="gap:8px">
+          <div style="display:flex;gap:3px">
+            <button class="btn btn-ghost btn-sm" id="nw-range-1y"  onclick="setNwRange('1y')">1Y</button>
+            <button class="btn btn-ghost btn-sm" id="nw-range-2y"  onclick="setNwRange('2y')">2Y</button>
+            <button class="btn btn-ghost btn-sm" id="nw-range-5y"  onclick="setNwRange('5y')">5Y</button>
+            <button class="btn btn-ghost btn-sm" id="nw-range-all" onclick="setNwRange('all')">All</button>
+          </div>
           <button class="btn btn-ghost btn-sm" onclick="openBalanceModal()">+ Add Month Snapshot</button>
         </div>
       </div>
@@ -145,9 +153,10 @@ tr.dragging{opacity:0.4;}
   <div class="grid-2 section-gap">
     <div class="card">
       <div class="card-header"><span class="card-title">Assets by Category</span></div>
-      <div class="chart-wrap" style="height:200px">
+      <div class="chart-wrap" style="height:180px">
         <canvas id="categoryChart"></canvas>
       </div>
+      <div id="category-history"></div>
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title">Account Breakdown</span></div>
@@ -180,6 +189,11 @@ tr.dragging{opacity:0.4;}
     <div class="card">
       <div class="card-header">
         <span class="card-title">Net Worth Projection</span>
+        <div class="inline-flex">
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em">Show</span>
+          <input class="form-input" type="number" id="projYears" style="width:68px;padding:4px 8px;text-align:center" min="1" max="60" placeholder="30" onchange="renderAll()">
+          <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em">yrs</span>
+        </div>
       </div>
       <div class="chart-wrap" style="height:300px">
         <canvas id="projectionChart"></canvas>
@@ -223,6 +237,11 @@ tr.dragging{opacity:0.4;}
       </div>
     </div>
   </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Debt Payoff Timeline</span></div>
+    <div id="debt-payoff-list"></div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════════
@@ -238,6 +257,16 @@ tr.dragging{opacity:0.4;}
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title">FIRE Number</span></div>
+      <div class="form-row" style="margin-bottom:16px">
+        <div class="form-group">
+          <label class="form-label">Monthly Spend in Retirement</label>
+          <input class="form-input" type="number" id="coastRetSpend" placeholder="5000" onchange="syncRetSpend(this.value)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Safe Withdrawal Rate (%)</label>
+          <input class="form-input" type="number" id="coastSwr" placeholder="4" step="0.1" onchange="syncSwr(this.value)">
+        </div>
+      </div>
       <div id="fire-number-display"></div>
     </div>
   </div>
@@ -249,20 +278,89 @@ tr.dragging{opacity:0.4;}
     </div>
   </div>
 
-  <div class="card">
+  <div class="card section-gap">
+    <div class="card-header">
+      <span class="card-title">Plan Snapshots</span>
+      <button class="btn btn-primary btn-sm" onclick="saveCoastSnapshot()">+ Save Snapshot</button>
+    </div>
+    <div id="coast-snapshots-list"></div>
+  </div>
+
+  <div class="card section-gap">
     <div class="card-header"><span class="card-title">Coast FIRE Settings</span></div>
     <div class="form-row-3">
       <div class="form-group">
-        <label class="form-label">Current Age</label>
-        <input class="form-input" type="number" id="currentAge" placeholder="30" onchange="saveSettings();renderAll()">
-      </div>
-      <div class="form-group">
         <label class="form-label">Retirement Age</label>
-        <input class="form-input" type="number" id="retirementAge" placeholder="55" onchange="saveSettings();renderAll()">
+        <input class="form-input" type="number" id="retirementAge" placeholder="55" onchange="syncRetirementAge(this.value)">
       </div>
       <div class="form-group">
-        <label class="form-label">Avg Investment Return (%)</label>
-        <input class="form-input" type="number" id="avgReturn" placeholder="7" step="0.1" onchange="saveSettings();renderAll()">
+        <label class="form-label">Inflation Rate (%)</label>
+        <input class="form-input" type="number" id="coastInflationRate" placeholder="3" step="0.1" onchange="syncInflation(this.value)">
+        <p class="hint">Used for nominal FIRE number at retirement</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Effective Tax Rate in Retirement (%)</label>
+        <input class="form-input" type="number" id="coastTaxRate" placeholder="0" step="1" min="0" max="99" onchange="syncTaxRate(this.value)">
+        <p class="hint">Grosses up FIRE number to cover taxes on withdrawals</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE: FIRE (TRADITIONAL)
+══════════════════════════════════════════════ -->
+<div class="page" id="page-fire">
+  <div class="stat-row" id="fire-stat-row"></div>
+
+  <div class="grid-2 section-gap">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Traditional FIRE Projection</span></div>
+      <div id="fire-projection-display"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">FIRE Number</span></div>
+      <div class="form-row" style="margin-bottom:16px">
+        <div class="form-group">
+          <label class="form-label">Monthly Spend in Retirement</label>
+          <input class="form-input" type="number" id="fireRetSpend" placeholder="5000" onchange="syncRetSpend(this.value)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Safe Withdrawal Rate (%)</label>
+          <input class="form-input" type="number" id="fireSwr" placeholder="4" step="0.1" onchange="syncSwr(this.value)">
+        </div>
+      </div>
+      <div id="fire-number-display-tfire"></div>
+    </div>
+  </div>
+
+  <div class="card section-gap">
+    <div class="card-header"><span class="card-title">Portfolio Growth to FIRE</span></div>
+    <div class="chart-wrap" style="height:300px">
+      <canvas id="tFireChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card section-gap">
+    <div class="card-header">
+      <span class="card-title">Plan Snapshots</span>
+      <button class="btn btn-primary btn-sm" onclick="saveFireSnapshot()">+ Save Snapshot</button>
+    </div>
+    <div id="fire-snapshots-list"></div>
+  </div>
+
+  <div class="card section-gap">
+    <div class="card-header"><span class="card-title">FIRE Settings</span></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Inflation Rate (%)</label>
+        <input class="form-input" type="number" id="fireInflationRate" placeholder="3" step="0.1" onchange="syncInflation(this.value)">
+        <p class="hint">Used for nominal FIRE number</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Effective Tax Rate in Retirement (%)</label>
+        <input class="form-input" type="number" id="fireTaxRate" placeholder="0" step="1" min="0" max="99" onchange="syncTaxRate(this.value)">
+        <p class="hint">Grosses up FIRE number to cover taxes on withdrawals</p>
       </div>
     </div>
   </div>
@@ -287,7 +385,7 @@ tr.dragging{opacity:0.4;}
 <div class="page" id="page-settings">
   <div class="card">
     <div class="card-header"><span class="card-title">General Settings</span></div>
-    <div class="form-row">
+    <div class="form-row-3">
       <div class="form-group">
         <label class="form-label">Your Name (optional)</label>
         <input class="form-input" type="text" id="userName" placeholder="Adam" onchange="saveSettings()">
@@ -295,6 +393,18 @@ tr.dragging{opacity:0.4;}
       <div class="form-group">
         <label class="form-label">Currency Symbol</label>
         <input class="form-input" type="text" id="currencySymbol" placeholder="$" maxlength="3" onchange="saveSettings();renderAll()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Annual Gross Salary</label>
+        <input class="form-input" type="number" id="salary" placeholder="80000" onchange="saveSettings()">
+        <p class="hint">Used for contribution % in Projections</p>
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:12px;max-width:480px">
+      <div class="form-group">
+        <label class="form-label">Birth Year</label>
+        <input class="form-input" type="number" id="birthYear" placeholder="1990" onchange="syncBirthYear(this.value)">
+        <p class="hint">Current age auto-calculates each year</p>
       </div>
     </div>
   </div>
@@ -327,44 +437,67 @@ tr.dragging{opacity:0.4;}
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Category</label>
-        <select class="form-select" id="acc-category">
+        <select class="form-select" id="acc-category" onchange="updateAccountModal()">
           <option value="bank">Bank / Savings</option>
           <option value="investment">Investment</option>
+          <option value="retirement">Retirement</option>
           <option value="asset">Asset</option>
           <option value="debt">Debt</option>
         </select>
       </div>
       <div class="form-group">
         <label class="form-label">Sub-type</label>
-        <select class="form-select" id="acc-subtype">
+        <select class="form-select" id="acc-subtype" onchange="updateAccountModal()">
           <option value="checking">Checking</option>
           <option value="savings">Savings / HYSA</option>
-          <option value="401k">401(k)</option>
-          <option value="roth">Roth IRA</option>
-          <option value="brokerage">Brokerage</option>
-          <option value="hsa">HSA</option>
-          <option value="home">Home</option>
-          <option value="vehicle">Vehicle</option>
-          <option value="other_asset">Other Asset</option>
-          <option value="mortgage">Mortgage</option>
-          <option value="auto_loan">Auto Loan</option>
-          <option value="student_loan">Student Loan</option>
-          <option value="credit_card">Credit Card</option>
-          <option value="other_debt">Other Debt</option>
         </select>
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Est. Annual Return / Interest Rate (%)</label>
+        <label class="form-label" id="acc-rate-label">Est. Annual Return (%)</label>
         <input class="form-input" type="number" id="acc-rate" placeholder="7" step="0.1">
-        <p class="hint">Use positive for growth, negative for debt cost (or leave 0 for debts)</p>
+        <p class="hint" id="acc-rate-hint">Expected annual growth rate</p>
       </div>
       <div class="form-group">
-        <label class="form-label">Monthly Contribution (default $)</label>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label class="form-label" id="acc-contrib-label" style="margin-bottom:0">Monthly Contribution</label>
+          <div id="contrib-type-toggle" style="display:none;gap:3px">
+            <button type="button" id="contrib-btn-fixed" onclick="setContribType('fixed')" style="padding:2px 8px;font-size:10px;font-family:var(--font-mono);border:1px solid var(--border);border-radius:3px;cursor:pointer;background:var(--accent-gold);color:#000">$</button>
+            <button type="button" id="contrib-btn-pct" onclick="setContribType('pct')" style="padding:2px 8px;font-size:10px;font-family:var(--font-mono);border:1px solid var(--border);border-radius:3px;cursor:pointer;background:transparent;color:var(--text-secondary)">%</button>
+          </div>
+        </div>
         <input class="form-input" type="number" id="acc-contrib" placeholder="0">
-        <p class="hint">Can be overridden per scenario</p>
+        <p class="hint" id="acc-contrib-hint">Can be overridden per scenario</p>
       </div>
+    </div>
+    <div id="for-retirement-row" style="display:none;padding:4px 0 8px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="acc-forretirement" style="width:15px;height:15px;accent-color:var(--accent-gold);cursor:pointer;flex-shrink:0">
+        <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)">Include in Coast FIRE &amp; retirement calculations</span>
+      </label>
+      <p class="hint" style="margin-left:25px;margin-top:4px">Count this account's balance toward your investable portfolio for Coast FIRE</p>
+    </div>
+    <div class="form-row-3" id="employer-match-row" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Base Match (% of Salary)</label>
+        <input class="form-input" type="number" id="acc-basematch" placeholder="0" step="0.5">
+        <p class="hint">Unconditional match regardless of your contribution</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Additional Match Rate (%)</label>
+        <input class="form-input" type="number" id="acc-matchrate" placeholder="100" step="1">
+        <p class="hint">100 = dollar-for-dollar on your contributions</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Additional Match Limit (% of Salary)</label>
+        <input class="form-input" type="number" id="acc-matchlimit" placeholder="6" step="0.5">
+        <p class="hint">Additional match applies up to this % of gross salary</p>
+      </div>
+    </div>
+    <div id="debt-note" style="display:none;background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.25);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px">
+      <p style="font-size:12px;color:var(--text-secondary);margin:0;line-height:1.6">This tool does not track paying down debt and is only used to track debts for your current Net Worth. Enter your current balance and update it manually each month via the balance snapshot.</p>
+      <p id="credit-card-note" style="display:none;font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.6">For credit cards, this tool assumes you pay your balance in full by the end of each statement period.</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-account')">Cancel</button>
@@ -381,11 +514,11 @@ tr.dragging{opacity:0.4;}
     <div class="form-row" style="margin-bottom:16px">
       <div class="form-group">
         <label class="form-label">Year</label>
-        <input class="form-input" type="number" id="bal-year" placeholder="2025">
+        <input class="form-input" type="number" id="bal-year" placeholder="2025" onchange="buildBalanceFields()">
       </div>
       <div class="form-group">
         <label class="form-label">Month (1–12)</label>
-        <input class="form-input" type="number" id="bal-month" min="1" max="12" placeholder="1">
+        <input class="form-input" type="number" id="bal-month" min="1" max="12" placeholder="1" onchange="buildBalanceFields()">
       </div>
     </div>
     <div id="balance-fields"></div>
@@ -445,7 +578,9 @@ tr.dragging{opacity:0.4;}
 // STATE
 // ══════════════════════════════════════════════
 let state = {
-  meta: { currentAge: 30, retirementAge: 55, retSpend: 5000, inflationRate: 3, swr: 4, avgReturn: 7, userName: '', currencySymbol: '$' },
+  meta: { birthYear: 1996, retirementAge: 55, retSpend: 5000, inflationRate: 3, swr: 4, avgReturn: 7, taxRate: 0, userName: '', currencySymbol: '$', salary: 0 },
+  coastSnapshots: [],
+  fireSnapshots: [],
   accounts: [],
   balances: [],
   oneTimeEvents: [],
@@ -464,9 +599,13 @@ function fmt(v) { return Math.abs(v) >= 1e6 ? (v/1e6).toFixed(2)+'M' : Math.abs(
 function fmtFull(v) { return (state.meta.currencySymbol || '$') + Math.round(v).toLocaleString(); }
 function monthKey(y, m) { return y + '-' + String(m).padStart(2,'0'); }
 function parseMonthKey(k) { const [y,m] = k.split('-'); return { year: +y, month: +m }; }
-function categoryColor(cat) { return { bank:'#2dd4bf', investment:'#4a9eff', asset:'#34d399', debt:'#fb7185' }[cat] || '#8b9cb8'; }
+function categoryColor(cat) { return { bank:'#2dd4bf', investment:'#4a9eff', asset:'#f97316', debt:'#fb7185', retirement:'#a78bfa' }[cat] || '#8b9cb8'; }
 
 function getAccountById(id) { return state.accounts.find(a => a.id === id); }
+
+function getCurrentAge() {
+  return new Date().getFullYear() - (state.meta.birthYear || (new Date().getFullYear() - 30));
+}
 
 function getScenario(id) {
   return state.scenarios.find(s => s.id === (id || state.activeScenario)) || state.scenarios[0];
@@ -476,7 +615,44 @@ function getContribution(accountId, scenarioId) {
   const sc = getScenario(scenarioId);
   if (sc && sc.contributions && sc.contributions[accountId] !== undefined) return sc.contributions[accountId];
   const acc = getAccountById(accountId);
-  return acc ? (acc.contrib || 0) : 0;
+  if (!acc) return 0;
+  if (acc.contribType === 'pct' && acc.contribPct) {
+    return ((state.meta.salary || 0) / 12) * (acc.contribPct / 100);
+  }
+  return acc.contrib || 0;
+}
+
+function blendedCoastRate() {
+  const latestBals = getLatestBalances();
+  let totalBal = 0, weightedSum = 0;
+  state.accounts.forEach(acc => {
+    if (isCoastAccount(acc)) {
+      const v = Math.max(0, (latestBals[acc.id] || {}).value || 0);
+      totalBal += v;
+      weightedSum += v * (acc.rate || 0);
+    }
+  });
+  if (totalBal > 0) return weightedSum / totalBal / 100;
+  // No balance data yet — equal-weight average of account rates
+  const rates = state.accounts.filter(isCoastAccount).map(a => a.rate || 0);
+  return rates.length ? rates.reduce((s, r) => s + r, 0) / rates.length / 100 : 0.07;
+}
+
+function isCoastAccount(acc) {
+  return (acc.category === 'bank' || acc.category === 'investment' || acc.category === 'retirement')
+    && acc.forRetirement !== false;
+}
+
+function getEmployerMatch(accountId, scenarioId) {
+  const acc = getAccountById(accountId);
+  if (!acc) return 0;
+  const monthlySalary = (state.meta.salary || 0) / 12;
+  if (!monthlySalary) return 0;
+  const baseMatch = monthlySalary * ((acc.baseMatchPct || 0) / 100);
+  const employeeContrib = getContribution(accountId, scenarioId);
+  const matchCap = monthlySalary * ((acc.matchLimit || 0) / 100);
+  const additionalMatch = Math.min(employeeContrib, matchCap) * ((acc.matchRate || 0) / 100);
+  return baseMatch + additionalMatch;
 }
 
 // Latest balance for each account
@@ -505,7 +681,13 @@ function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
-  document.querySelectorAll('.nav-tab').forEach(t => { if (t.textContent.toLowerCase().includes(name === 'coastfire' ? 'coast' : name)) t.classList.add('active'); });
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    const txt = t.textContent.toLowerCase().trim();
+    const matches = name === 'coastfire' ? txt.includes('coast') :
+                    name === 'fire'      ? txt === 'fire' :
+                    txt.includes(name);
+    if (matches) t.classList.add('active');
+  });
   renderAll();
 }
 
@@ -531,6 +713,9 @@ function handleFileLoad(e) {
       state = JSON.parse(ev.target.result);
       if (!state.scenarios) state.scenarios = [{ id: 'default', name: 'Base Case', contributions: {}, oneTimeEvents: [] }];
       if (!state.activeScenario) state.activeScenario = state.scenarios[0].id;
+      if (state.meta.currentAge && !state.meta.birthYear) state.meta.birthYear = new Date().getFullYear() - state.meta.currentAge;
+      if (!state.coastSnapshots) state.coastSnapshots = [];
+      if (!state.fireSnapshots) state.fireSnapshots = [];
       loadSettingsToUI();
       renderAll(); // renderAll now calls persistState
     } catch(err) { alert('Invalid JSON file: ' + err.message); }
@@ -541,7 +726,7 @@ function handleFileLoad(e) {
 
 function clearAll() {
   if (!confirm('Clear ALL data? This cannot be undone.')) return;
-  state = { meta: { currentAge:30, retirementAge:55, retSpend:5000, inflationRate:3, swr:4, avgReturn:7, userName:'', currencySymbol:'$' }, accounts:[], balances:[], oneTimeEvents:[], scenarios:[{ id:'default', name:'Base Case', contributions:{}, oneTimeEvents:[] }], activeScenario:'default' };
+  state = { meta: { currentAge:30, retirementAge:55, retSpend:5000, inflationRate:3, swr:4, avgReturn:7, userName:'', currencySymbol:'$' }, coastSnapshots:[], fireSnapshots:[], accounts:[], balances:[], oneTimeEvents:[], scenarios:[{ id:'default', name:'Base Case', contributions:{}, oneTimeEvents:[] }], activeScenario:'default' };
   try { localStorage.removeItem(LS_KEY); } catch(e) {}
   loadSettingsToUI();
   renderAll();
@@ -555,24 +740,191 @@ function saveSettings() {
   const gn = id => { const el = document.getElementById(id); return el ? parseFloat(el.value) || 0 : 0; };
   state.meta.userName = g('userName') || '';
   state.meta.currencySymbol = g('currencySymbol') || '$';
-  state.meta.currentAge = gn('currentAge') || 30;
+  state.meta.birthYear = gn('birthYear') || (new Date().getFullYear() - 30);
   state.meta.retirementAge = gn('retirementAge') || 55;
   state.meta.retSpend = gn('retSpend') || 5000;
   state.meta.inflationRate = gn('inflationRate') || 3;
   state.meta.swr = gn('swr') || 4;
-  state.meta.avgReturn = gn('avgReturn') || 7;
+  state.meta.salary = gn('salary') || 0;
+}
+
+function syncInflation(v) {
+  state.meta.inflationRate = parseFloat(v) || 3;
+  ['inflationRate', 'coastInflationRate', 'fireInflationRate'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = v;
+  });
+  persistState();
+  renderAll();
+}
+
+function syncRetSpend(v) {
+  state.meta.retSpend = parseFloat(v) || 5000;
+  ['retSpend', 'coastRetSpend', 'fireRetSpend'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = v;
+  });
+  persistState();
+  renderAll();
+}
+
+function syncSwr(v) {
+  state.meta.swr = parseFloat(v) || 4;
+  ['swr', 'coastSwr', 'fireSwr'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = v;
+  });
+  persistState();
+  renderAll();
+}
+
+function syncBirthYear(v) {
+  state.meta.birthYear = parseInt(v) || (new Date().getFullYear() - 30);
+  const el = document.getElementById('birthYear');
+  if (el) el.value = v;
+  persistState();
+  renderAll();
+}
+
+function syncTaxRate(v) {
+  state.meta.taxRate = parseFloat(v) || 0;
+  ['coastTaxRate', 'fireTaxRate'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = v;
+  });
+  persistState();
+  renderAll();
+}
+
+function syncRetirementAge(v) {
+  state.meta.retirementAge = parseInt(v) || 55;
+  const el = document.getElementById('retirementAge');
+  if (el) el.value = v;
+  persistState();
+  renderAll();
 }
 
 function loadSettingsToUI() {
   const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
   set('userName', state.meta.userName);
   set('currencySymbol', state.meta.currencySymbol || '$');
-  set('currentAge', state.meta.currentAge);
+  set('birthYear', state.meta.birthYear);
   set('retirementAge', state.meta.retirementAge);
   set('retSpend', state.meta.retSpend);
   set('inflationRate', state.meta.inflationRate);
+  set('coastInflationRate', state.meta.inflationRate);
+  set('coastRetSpend', state.meta.retSpend);
+  set('coastSwr', state.meta.swr);
   set('swr', state.meta.swr);
-  set('avgReturn', state.meta.avgReturn);
+  set('fireRetSpend', state.meta.retSpend);
+  set('fireSwr', state.meta.swr);
+  set('fireInflationRate', state.meta.inflationRate);
+  set('coastTaxRate', state.meta.taxRate || 0);
+  set('fireTaxRate', state.meta.taxRate || 0);
+  set('salary', state.meta.salary || '');
+}
+
+// ══════════════════════════════════════════════
+// ACCOUNT MODAL LOGIC
+// ══════════════════════════════════════════════
+const SUBTYPES = {
+  bank:       [{v:'checking',l:'Checking'},{v:'savings',l:'Savings / HYSA'}],
+  investment: [{v:'brokerage',l:'Brokerage'}],
+  retirement: [{v:'401k',l:'401(k)'},{v:'403b',l:'403(b)'},{v:'roth',l:'Roth IRA'},{v:'traditional_ira',l:'Traditional IRA'},{v:'hsa',l:'HSA'},{v:'pension',l:'Pension'}],
+  asset:      [{v:'home',l:'Home'},{v:'vehicle',l:'Vehicle'},{v:'other_asset',l:'Other Asset'}],
+  debt:       [{v:'mortgage',l:'Mortgage'},{v:'auto_loan',l:'Auto Loan'},{v:'student_loan',l:'Student Loan'},{v:'credit_card',l:'Credit Card'},{v:'other_debt',l:'Other Debt'}]
+};
+
+let _contribType = 'fixed';
+let _nwRange = 'all';
+
+function setNwRange(r) {
+  _nwRange = r;
+  renderNetWorthChart();
+}
+
+function updateNwRangeButtons() {
+  ['1y','2y','5y','all'].forEach(r => {
+    const btn = document.getElementById('nw-range-' + r);
+    if (!btn) return;
+    const active = _nwRange === r;
+    btn.style.color       = active ? 'var(--accent-gold)'  : '';
+    btn.style.borderColor = active ? 'var(--accent-gold)'  : '';
+  });
+}
+
+function setContribType(type) {
+  const hasSalary = (state.meta.salary || 0) > 0;
+  if (type === 'pct' && !hasSalary) return;
+  _contribType = type;
+  const fixedBtn = document.getElementById('contrib-btn-fixed');
+  const pctBtn   = document.getElementById('contrib-btn-pct');
+  const inp      = document.getElementById('acc-contrib');
+  const hint     = document.getElementById('acc-contrib-hint');
+  fixedBtn.style.background = type === 'fixed' ? 'var(--accent-gold)' : 'transparent';
+  fixedBtn.style.color      = type === 'fixed' ? '#000' : 'var(--text-secondary)';
+  pctBtn.style.background   = type === 'pct'   ? 'var(--accent-gold)' : 'transparent';
+  pctBtn.style.color        = type === 'pct'   ? '#000' : 'var(--text-secondary)';
+  if (type === 'pct') {
+    inp.placeholder = '6';
+    const updateHint = () => {
+      const sal = (state.meta.salary || 0) / 12;
+      const pct = parseFloat(inp.value) || 0;
+      hint.textContent = sal > 0 ? `= ${fmtFull(sal * pct / 100)}/mo` : '% of gross salary';
+    };
+    inp.oninput = updateHint;
+    updateHint();
+  } else {
+    inp.placeholder = '0';
+    hint.textContent = 'Can be overridden per scenario';
+    inp.oninput = null;
+  }
+}
+
+function updateAccountModal() {
+  const cat    = document.getElementById('acc-category').value;
+  const subEl  = document.getElementById('acc-subtype');
+  const prevSub = subEl.value;
+  const subs   = SUBTYPES[cat] || [];
+
+  subEl.innerHTML = subs.map(s => `<option value="${s.v}"${s.v === prevSub ? ' selected' : ''}>${s.l}</option>`).join('');
+  if (!subs.find(s => s.v === prevSub) && subs.length) subEl.value = subs[0].v;
+  const sub = subEl.value;
+
+  const isDebt       = cat === 'debt';
+  const isRetirement = cat === 'retirement';
+  const is401kLike   = sub === '401k' || sub === '403b';
+  const hasSalary    = (state.meta.salary || 0) > 0;
+
+  document.getElementById('acc-rate-label').textContent =
+    isDebt ? 'Annual Interest Rate (%)' : 'Est. Annual Return (%)';
+  document.getElementById('acc-rate-hint').textContent =
+    isDebt ? 'APR from your statement' : 'Expected annual growth rate';
+
+  document.getElementById('acc-contrib-label').textContent =
+    isDebt ? 'Monthly Payment ($)' : 'Monthly Contribution';
+
+  const toggle = document.getElementById('contrib-type-toggle');
+  if (isRetirement) {
+    toggle.style.display = 'flex';
+    const pctBtn = document.getElementById('contrib-btn-pct');
+    pctBtn.disabled = !hasSalary;
+    pctBtn.title    = hasSalary ? '' : 'Add salary in Settings to use % contributions';
+    pctBtn.style.opacity = hasSalary ? '1' : '0.35';
+    if (!hasSalary && _contribType === 'pct') _contribType = 'fixed';
+    setContribType(_contribType);
+  } else {
+    toggle.style.display = 'none';
+    _contribType = 'fixed';
+    document.getElementById('acc-contrib-hint').textContent =
+      isDebt ? 'Minimum or actual monthly payment' : 'Can be overridden per scenario';
+    document.getElementById('acc-contrib').placeholder = '0';
+    document.getElementById('acc-contrib').oninput = null;
+  }
+
+  document.getElementById('employer-match-row').style.display = is401kLike ? '' : 'none';
+
+  document.getElementById('debt-note').style.display = isDebt ? '' : 'none';
+  document.getElementById('credit-card-note').style.display = sub === 'credit_card' ? '' : 'none';
+
+  const forRetRow = document.getElementById('for-retirement-row');
+  forRetRow.style.display = (cat === 'bank' || cat === 'investment' || cat === 'retirement') ? '' : 'none';
 }
 
 // ══════════════════════════════════════════════
@@ -584,21 +936,41 @@ function openAccountModal(id) {
   document.getElementById('modal-account-title').textContent = id ? 'Edit Account' : 'Add Account';
   document.getElementById('acc-name').value = acc ? acc.name : '';
   document.getElementById('acc-category').value = acc ? acc.category : 'bank';
-  document.getElementById('acc-subtype').value = acc ? (acc.subtype || 'checking') : 'checking';
-  document.getElementById('acc-rate').value = acc ? acc.rate : '';
-  document.getElementById('acc-contrib').value = acc ? (acc.contrib || '') : '';
+  _contribType = (acc && acc.contribType === 'pct') ? 'pct' : 'fixed';
+  updateAccountModal();
+  if (acc && acc.subtype) {
+    document.getElementById('acc-subtype').value = acc.subtype;
+    updateAccountModal();
+  }
+  document.getElementById('acc-rate').value = acc ? (acc.rate || '') : '';
+  document.getElementById('acc-contrib').value = acc
+    ? (acc.contribType === 'pct' ? (acc.contribPct || '') : (acc.contrib || ''))
+    : '';
+  if (acc && acc.contribType === 'pct') setContribType('pct');
+  document.getElementById('acc-basematch').value = acc ? (acc.baseMatchPct || '') : '';
+  document.getElementById('acc-matchrate').value = acc ? (acc.matchRate || '') : '';
+  document.getElementById('acc-matchlimit').value = acc ? (acc.matchLimit || '') : '';
+  document.getElementById('acc-forretirement').checked = acc ? acc.forRetirement !== false : true;
   openModal('modal-account');
 }
 
 function saveAccount() {
   const id = document.getElementById('editAccountId').value;
+  const rawContrib = parseFloat(document.getElementById('acc-contrib').value) || 0;
+  const monthlySalary = (state.meta.salary || 0) / 12;
   const acc = {
     id: id || uid(),
     name: document.getElementById('acc-name').value.trim(),
     category: document.getElementById('acc-category').value,
     subtype: document.getElementById('acc-subtype').value,
     rate: parseFloat(document.getElementById('acc-rate').value) || 0,
-    contrib: parseFloat(document.getElementById('acc-contrib').value) || 0
+    contribType: _contribType,
+    contribPct: _contribType === 'pct' ? rawContrib : 0,
+    contrib: _contribType === 'pct' ? monthlySalary * rawContrib / 100 : rawContrib,
+    baseMatchPct: parseFloat(document.getElementById('acc-basematch').value) || 0,
+    matchRate: parseFloat(document.getElementById('acc-matchrate').value) || 0,
+    matchLimit: parseFloat(document.getElementById('acc-matchlimit').value) || 0,
+    forRetirement: document.getElementById('acc-forretirement').checked,
   };
   if (!acc.name) { alert('Account name required'); return; }
   if (id) {
@@ -625,24 +997,23 @@ function openBalanceModal() {
   const now = new Date();
   document.getElementById('bal-year').value = now.getFullYear();
   document.getElementById('bal-month').value = now.getMonth() + 1;
-  // Build fields for each account
+  buildBalanceFields();
+  openModal('modal-balance');
+}
+
+function buildBalanceFields() {
+  const year = parseInt(document.getElementById('bal-year').value);
+  const month = parseInt(document.getElementById('bal-month').value);
   const wrap = document.getElementById('balance-fields');
   wrap.innerHTML = '';
-  ['bank','investment','asset','debt'].forEach(cat => {
-    const accs = state.accounts.filter(a => a.category === cat);
-    if (!accs.length) return;
-    const header = document.createElement('div');
-    header.innerHTML = `<div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin:12px 0 8px">${cat}</div>`;
-    wrap.appendChild(header);
-    accs.forEach(acc => {
-      const row = document.createElement('div');
-      row.className = 'form-group';
-      row.innerHTML = `<label class="form-label">${acc.name}</label><input class="form-input" type="number" id="bal-${acc.id}" placeholder="0">`;
-      wrap.appendChild(row);
-    });
+  if (!state.accounts.length) { wrap.innerHTML = '<p class="hint">No accounts yet. Add accounts first.</p>'; return; }
+  state.accounts.forEach(acc => {
+    const existing = state.balances.find(b => b.accountId === acc.id && b.year === year && b.month === month);
+    const row = document.createElement('div');
+    row.className = 'form-group';
+    row.innerHTML = `<label class="form-label">${acc.name}</label><input class="form-input" type="number" id="bal-${acc.id}" placeholder="0"${existing !== undefined ? ` value="${existing.value}"` : ''}>`;
+    wrap.appendChild(row);
   });
-  if (!state.accounts.length) wrap.innerHTML = '<p class="hint">No accounts yet. Add accounts first.</p>';
-  openModal('modal-balance');
 }
 
 function saveBalances() {
@@ -863,18 +1234,24 @@ function buildProjection(scenarioId, months) {
       });
     }
 
-    let totalAssets = 0, totalDebts = 0;
+    let totalAssets = 0, totalDebts = 0, bankTotal = 0, investTotal = 0, retTotal = 0, assetTotal = 0;
     state.accounts.forEach(acc => {
       const v = values[acc.id] || 0;
       if (acc.category === 'debt') totalDebts += Math.abs(v);
-      else totalAssets += v;
+      else {
+        totalAssets += v;
+        if (acc.category === 'bank') bankTotal += v;
+        else if (acc.category === 'investment') investTotal += v;
+        else if (acc.category === 'retirement') retTotal += v;
+        else if (acc.category === 'asset') assetTotal += v;
+      }
     });
 
     points.push({
       key, date,
-      assets: totalAssets,
-      debts: totalDebts,
+      assets: totalAssets, debts: totalDebts,
       netWorth: totalAssets - totalDebts,
+      bank: bankTotal, investment: investTotal, retirement: retTotal, asset: assetTotal,
       snapshot: { ...values }
     });
 
@@ -905,7 +1282,8 @@ function buildProjection(scenarioId, months) {
           values[acc.id] = Math.min(0, values[acc.id] + extra);
         }
       } else {
-        values[acc.id] = (values[acc.id] || 0) * (1 + monthlyRate) + contrib;
+        const match = getEmployerMatch(acc.id, scenarioId);
+        values[acc.id] = (values[acc.id] || 0) * (1 + monthlyRate) + contrib + match;
       }
     });
   }
@@ -916,24 +1294,111 @@ function buildProjection(scenarioId, months) {
 // ══════════════════════════════════════════════
 // COAST FIRE MATH
 // ══════════════════════════════════════════════
+
+// Finds the age at which current portfolio + ongoing contributions crosses the
+// coast FIRE threshold (fireNumber / (1+r)^yearsLeft). Both sides move: portfolio
+// grows up, coast number shrinks as retirement approaches.
+function computeCoastFIREAge() {
+  const { retirementAge, retSpend, swr, taxRate } = state.meta;
+  const currentAge = getCurrentAge();
+  const taxFactor = 1 - Math.min((taxRate || 0) / 100, 0.99);
+  const fireNumber = ((retSpend || 5000) * 12) / ((swr || 4) / 100) / taxFactor;
+  const r = blendedCoastRate();
+
+  const latestBals = getLatestBalances();
+  const accVals = {};
+  state.accounts.forEach(acc => {
+    if (isCoastAccount(acc)) {
+      const b = latestBals[acc.id];
+      accVals[acc.id] = b ? b.value : 0;
+    }
+  });
+
+  const maxMonths = Math.max(0, (retirementAge || 55) - currentAge) * 12;
+  for (let m = 0; m <= maxMonths; m++) {
+    const balance = Object.values(accVals).reduce((s, v) => s + v, 0);
+    const yearsLeft = ((retirementAge || 55) - currentAge) - m / 12;
+    const coastAtAge = yearsLeft > 0 ? fireNumber / Math.pow(1 + r, yearsLeft) : fireNumber;
+    if (balance >= coastAtAge) {
+      return { reached: true, coastAge: currentAge + m / 12, portfolioAtCoast: balance, coastNumberAtCoast: coastAtAge };
+    }
+    state.accounts.forEach(acc => {
+      if (!(acc.id in accVals)) return;
+      const moR = (acc.rate || 0) / 100 / 12;
+      accVals[acc.id] = accVals[acc.id] * (1 + moR) + getContribution(acc.id) + getEmployerMatch(acc.id);
+    });
+  }
+  const balance = Object.values(accVals).reduce((s, v) => s + v, 0);
+  return { reached: false, coastAge: null, portfolioAtCoast: balance, coastNumberAtCoast: fireNumber };
+}
+
 function computeCoastFIRE() {
-  const { currentAge, retirementAge, retSpend, swr, avgReturn, inflationRate } = state.meta;
-  const yearsToRet = Math.max(0, retirementAge - currentAge);
-  const fireNumber = (retSpend * 12) / ((swr || 4) / 100);
-  const r = (avgReturn || 7) / 100;
-  const coastFireNumber = fireNumber / Math.pow(1 + r, yearsToRet);
+  const { retirementAge, retSpend, swr, inflationRate, taxRate } = state.meta;
+  const age = getCurrentAge();
+  const yearsToRet = Math.max(0, (retirementAge || 55) - age);
+  const taxFactor = 1 - Math.min((taxRate || 0) / 100, 0.99);
+  const fireNumber = ((retSpend || 5000) * 12) / ((swr || 4) / 100) / taxFactor;
+  const nominalFireNumber = fireNumber * Math.pow(1 + (inflationRate || 3) / 100, yearsToRet);
+  const r = blendedCoastRate();
+  const coastFireNumber = yearsToRet > 0 ? fireNumber / Math.pow(1 + r, yearsToRet) : fireNumber;
   
-  // Current investable assets (bank + investment only)
+  // Current investable assets (bank + investment + retirement)
   const latestBals = getLatestBalances();
   let currentInvestable = 0;
   state.accounts.forEach(acc => {
-    if (acc.category === 'bank' || acc.category === 'investment') {
+    if (isCoastAccount(acc)) {
       const b = latestBals[acc.id];
       currentInvestable += b ? b.value : 0;
     }
   });
   
-  return { fireNumber, coastFireNumber, currentInvestable, yearsToRet };
+  return { fireNumber, nominalFireNumber, coastFireNumber, currentInvestable, yearsToRet };
+}
+
+// ══════════════════════════════════════════════
+// TRADITIONAL FIRE MATH
+// ══════════════════════════════════════════════
+
+// Simulates portfolio with full contributions until fireNumber is reached.
+// Returns earliest age that achieves FIRE (up to 60 years out), or null.
+function computeTraditionalFIRE() {
+  const { retirementAge, retSpend, swr, inflationRate, taxRate } = state.meta;
+  const currentAge = getCurrentAge();
+  const yearsToRet = Math.max(0, (retirementAge || 55) - currentAge);
+  const taxFactor = 1 - Math.min((taxRate || 0) / 100, 0.99);
+  const fireNumber = ((retSpend || 5000) * 12) / ((swr || 4) / 100) / taxFactor;
+  const nominalFireNumber = fireNumber * Math.pow(1 + (inflationRate || 3) / 100, yearsToRet);
+
+  const latestBals = getLatestBalances();
+  let currentInvestable = 0;
+  state.accounts.forEach(acc => {
+    if (isCoastAccount(acc)) {
+      const b = latestBals[acc.id];
+      currentInvestable += b ? b.value : 0;
+    }
+  });
+
+  const accVals = {};
+  state.accounts.forEach(acc => {
+    if (isCoastAccount(acc)) {
+      const b = latestBals[acc.id];
+      accVals[acc.id] = b ? b.value : 0;
+    }
+  });
+
+  let earliestFireAge = null;
+  const maxMonths = 60 * 12;
+  for (let m = 0; m <= maxMonths; m++) {
+    const balance = Object.values(accVals).reduce((s, v) => s + v, 0);
+    if (balance >= fireNumber) { earliestFireAge = currentAge + m / 12; break; }
+    state.accounts.forEach(acc => {
+      if (!(acc.id in accVals)) return;
+      const moR = (acc.rate || 0) / 100 / 12;
+      accVals[acc.id] = accVals[acc.id] * (1 + moR) + getContribution(acc.id) + getEmployerMatch(acc.id);
+    });
+  }
+
+  return { fireNumber, nominalFireNumber, currentInvestable, earliestFireAge, yearsToRet };
 }
 
 // ══════════════════════════════════════════════
@@ -981,12 +1446,17 @@ function renderAll() {
   renderStats();
   renderNetWorthChart();
   renderCategoryChart();
+  renderCategoryHistory();
   renderAccountBreakdown();
   renderBalanceLog();
   renderProjectionChart();
   renderContribList();
   renderEventList();
+  renderDebtPayoff();
   renderCoastFIRE();
+  renderCoastSnapshots();
+  renderTraditionalFIRE();
+  renderFireSnapshots();
   renderAccountsTable();
   loadSettingsToUI();
 }
@@ -1000,7 +1470,7 @@ function renderStats() {
     if (acc.category === 'debt') totalDebts += Math.abs(v);
     else {
       totalAssets += v;
-      if (acc.category === 'investment') totalInvestments += v;
+      if (acc.category === 'investment' || acc.category === 'retirement') totalInvestments += v;
     }
   });
   const netWorth = totalAssets - totalDebts;
@@ -1028,16 +1498,27 @@ function renderNetWorthChart() {
   destroyChart('netWorthChart');
   const canvas = document.getElementById('netWorthChart');
   if (!canvas) return;
+  updateNwRangeButtons();
 
-  // Build historical data from balances
   const allMonths = [...new Set(state.balances.map(b => monthKey(b.year, b.month)))].sort();
   if (allMonths.length < 2) {
     canvas.parentElement.innerHTML = '<div class="empty-state">Add at least 2 months of balance data to see the chart.<br>Click "Add Month Snapshot" to begin.</div>';
     return;
   }
 
-  const labels = [], assets = [], debts = [], netWorths = [];
-  allMonths.forEach(mk => {
+  // Filter to selected range
+  let visibleMonths = allMonths;
+  if (_nwRange !== 'all') {
+    const years = _nwRange === '1y' ? 1 : _nwRange === '2y' ? 2 : 5;
+    const now = new Date();
+    const cutoff = monthKey(now.getFullYear() - years, now.getMonth() + 1);
+    visibleMonths = allMonths.filter(mk => mk >= cutoff);
+    if (visibleMonths.length < 2) visibleMonths = allMonths;
+  }
+
+  // Build data map for months that have snapshots
+  const dataMap = {};
+  visibleMonths.forEach(mk => {
     const { year, month } = parseMonthKey(mk);
     let ta = 0, td = 0;
     state.accounts.forEach(acc => {
@@ -1046,21 +1527,36 @@ function renderNetWorthChart() {
       if (acc.category === 'debt') td += Math.abs(v);
       else ta += v;
     });
-    labels.push(mk);
-    assets.push(ta);
-    debts.push(td);
-    netWorths.push(ta - td);
+    dataMap[mk] = { assets: ta, debts: -td, netWorth: ta - td };
   });
+
+  // Expand to every calendar month between first and last for proportional spacing
+  const allLabels = [];
+  {
+    let { year, month } = parseMonthKey(visibleMonths[0]);
+    const { year: ey, month: em } = parseMonthKey(visibleMonths[visibleMonths.length - 1]);
+    while (year < ey || (year === ey && month <= em)) {
+      allLabels.push(monthKey(year, month));
+      if (++month > 12) { month = 1; year++; }
+    }
+  }
+
+  const assets    = allLabels.map(mk => dataMap[mk] ? dataMap[mk].assets   : null);
+  const debts     = allLabels.map(mk => dataMap[mk] ? dataMap[mk].debts    : null);
+  const netWorths = allLabels.map(mk => dataMap[mk] ? dataMap[mk].netWorth : null);
+
+  const allVals = [...debts, ...netWorths].filter(v => v !== null);
+  const yMin = Math.floor(Math.min(0, ...allVals) / 100000) * 100000;
 
   const ctx = canvas.getContext('2d');
   charts['netWorthChart'] = new Chart(ctx, {
     type: 'line',
     data: {
-      labels,
+      labels: allLabels,
       datasets: [
-        { label: 'Assets', data: assets, borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.08)', fill: true, tension: 0.3, pointRadius: 3, pointHoverRadius: 5 },
-        { label: 'Debts', data: debts, borderColor: '#fb7185', backgroundColor: 'rgba(251,113,133,0.06)', fill: true, tension: 0.3, pointRadius: 3, pointHoverRadius: 5 },
-        { label: 'Net Worth', data: netWorths, borderColor: '#f6c90e', backgroundColor: 'transparent', fill: false, tension: 0.3, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6 }
+        { label: 'Assets',    data: assets,    borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.08)',  fill: true,  tension: 0.3, pointRadius: 0, pointHoverRadius: 4, spanGaps: true },
+        { label: 'Debts',     data: debts,     borderColor: '#fb7185', backgroundColor: 'rgba(251,113,133,0.08)', fill: true,  tension: 0.3, pointRadius: 0, pointHoverRadius: 4, spanGaps: true },
+        { label: 'Net Worth', data: netWorths, borderColor: '#f6c90e', backgroundColor: 'transparent',            fill: false, tension: 0.3, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, spanGaps: true }
       ]
     },
     options: {
@@ -1068,7 +1564,33 @@ function renderNetWorthChart() {
       plugins: {
         ...chartDefaults().plugins,
         legend: { display: true, position: 'top', labels: { color: '#8b9cb8', font: CHART_DEFAULTS.font, boxWidth: 12, padding: 16 } },
-        tooltip: { ...chartDefaults().plugins.tooltip, mode: 'index', intersect: false }
+        tooltip: {
+          ...chartDefaults().plugins.tooltip,
+          mode: 'index', intersect: false,
+          filter: item => item.parsed.y !== null
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: CHART_DEFAULTS.gridColor },
+          ticks: {
+            color: '#536480', font: CHART_DEFAULTS.font, maxTicksLimit: 12, maxRotation: 0,
+            callback: (val, idx) => {
+              const mk = allLabels[idx];
+              if (!mk) return '';
+              const { year, month } = parseMonthKey(mk);
+              const d = new Date(year, month - 1, 1);
+              return month === 1
+                ? d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+                : d.toLocaleDateString('en-US', { month: 'short' });
+            }
+          }
+        },
+        y: {
+          min: yMin,
+          grid: { color: CHART_DEFAULTS.gridColor },
+          ticks: { color: '#536480', font: CHART_DEFAULTS.font, callback: v => cur(v) }
+        }
       }
     }
   });
@@ -1079,21 +1601,28 @@ function renderCategoryChart() {
   const canvas = document.getElementById('categoryChart');
   if (!canvas) return;
   const latestBals = getLatestBalances();
-  const cats = { bank: 0, investment: 0, asset: 0 };
+  const cats = { bank: 0, investment: 0, retirement: 0, asset: 0 };
   state.accounts.forEach(acc => {
     if (acc.category === 'debt') return;
     const b = latestBals[acc.id];
     cats[acc.category] = (cats[acc.category] || 0) + (b ? b.value : 0);
   });
-  const labels = ['Bank / Savings', 'Investments', 'Assets'];
-  const data = [cats.bank, cats.investment, cats.asset];
-  if (data.every(v => v === 0)) return;
+  const catDefs = [
+    { label: 'Bank / Savings', key: 'bank',       color: '#2dd4bf' },
+    { label: 'Investments',    key: 'investment',  color: '#4a9eff' },
+    { label: 'Retirement',     key: 'retirement',  color: '#a78bfa' },
+    { label: 'Assets',         key: 'asset',       color: '#f97316' },
+  ].filter(d => cats[d.key] > 0);
+  if (!catDefs.length) return;
+  const labels = catDefs.map(d => d.label);
+  const data   = catDefs.map(d => cats[d.key]);
+  const colors = catDefs.map(d => d.color);
   const ctx = canvas.getContext('2d');
   charts['categoryChart'] = new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels,
-      datasets: [{ data, backgroundColor: ['#2dd4bf','#4a9eff','#34d399'], borderWidth: 0, hoverOffset: 4 }]
+      datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '65%',
@@ -1103,6 +1632,51 @@ function renderCategoryChart() {
       }
     }
   });
+}
+
+function renderCategoryHistory() {
+  const el = document.getElementById('category-history');
+  if (!el) return;
+
+  const allMonths = [...new Set(state.balances.map(b => monthKey(b.year, b.month)))].sort().reverse();
+  const recent = allMonths.slice(0, 5);
+  if (!recent.length) { el.innerHTML = ''; return; }
+
+  const catDefs = [
+    { key: 'bank',       label: 'Bank',    color: '#2dd4bf' },
+    { key: 'investment', label: 'Invest',  color: '#4a9eff' },
+    { key: 'retirement', label: 'Retire',  color: '#a78bfa' },
+    { key: 'asset',      label: 'Assets',  color: '#f97316' },
+  ];
+
+  let html = '<div style="border-top:1px solid var(--border);margin-top:8px">';
+  html += '<table class="data-table"><thead><tr><th>Month</th>';
+  catDefs.forEach(c => html += `<th class="text-right" style="color:${c.color}">${c.label}</th>`);
+  html += '<th class="text-right" style="color:var(--accent-gold)">Total</th></tr></thead><tbody>';
+
+  recent.forEach(mk => {
+    const { year, month } = parseMonthKey(mk);
+    const cats = { bank: 0, investment: 0, retirement: 0, asset: 0 };
+    state.accounts.forEach(acc => {
+      if (acc.category === 'debt') return;
+      const v = getBalanceAtMonth(acc.id, year, month);
+      if (v !== null) cats[acc.category] = (cats[acc.category] || 0) + v;
+    });
+    const total = Object.values(cats).reduce((s, v) => s + v, 0);
+    const label = new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+
+    html += `<tr><td class="mono" style="color:var(--text-secondary);white-space:nowrap">${label}</td>`;
+    catDefs.forEach(c => {
+      const v = cats[c.key] || 0;
+      const pct = total > 0 ? Math.round(v / total * 100) : 0;
+      html += `<td class="text-right"><div class="mono" style="font-size:12px;color:var(--text-primary)">${fmtFull(v)}</div>`
+            + `<div style="font-size:10px;color:var(--text-muted)">${pct}%</div></td>`;
+    });
+    html += `<td class="text-right mono" style="color:var(--accent-gold);font-weight:600">${fmtFull(total)}</td></tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
 }
 
 function renderAccountBreakdown() {
@@ -1153,52 +1727,50 @@ function renderProjectionChart() {
   destroyChart('projectionChart');
   const canvas = document.getElementById('projectionChart');
   if (!canvas) return;
-  const { currentAge, retirementAge } = state.meta;
-  const yearsLeft = Math.max(5, (retirementAge || 55) - (currentAge || 30) + 10);
-  const months = yearsLeft * 12;
+  const { retirementAge } = state.meta;
+  const age = getCurrentAge();
 
-  const colors = ['#f6c90e','#4a9eff','#34d399','#fb7185','#a78bfa','#2dd4bf'];
-  const datasets = state.scenarios.map((sc, i) => {
-    const pts = buildProjection(sc.id, months);
-    return {
-      label: sc.name,
-      data: pts.map(p => ({ x: p.key, y: p.netWorth })),
-      borderColor: colors[i % colors.length],
-      backgroundColor: 'transparent',
-      tension: 0.3,
-      borderWidth: sc.id === state.activeScenario ? 2.5 : 1.5,
-      borderDash: sc.id === state.activeScenario ? [] : [5, 3],
-      pointRadius: 0,
-      pointHoverRadius: 4
-    };
-  });
+  const defaultYears = Math.max(10, (retirementAge || 55) - age + 10);
+  const projYearsEl = document.getElementById('projYears');
+  if (projYearsEl && !projYearsEl.value) projYearsEl.value = defaultYears;
+  const projYears = parseInt(projYearsEl?.value) || defaultYears;
+  const months = projYears * 12;
 
-  // Add retirement line
-  const now = new Date();
-  const retDate = new Date(now.getFullYear() + ((retirementAge||55) - (currentAge||30)), now.getMonth(), 1);
-  const retKey = monthKey(retDate.getFullYear(), retDate.getMonth()+1);
+  const pts = buildProjection(state.activeScenario, months);
+  const labels = pts.map(p => p.key);
 
-  const { fireNumber } = computeCoastFIRE();
+  const hasSavings = state.accounts.some(a => a.category === 'bank');
+  const hasInvest  = state.accounts.some(a => a.category === 'investment');
+  const hasRet     = state.accounts.some(a => a.category === 'retirement');
+  const hasAsset   = state.accounts.some(a => a.category === 'asset');
+  const hasDebt    = state.accounts.some(a => a.category === 'debt');
+
+  const datasets = [
+    { label: 'Net Worth',   data: pts.map(p => p.netWorth),    borderColor: '#f6c90e', backgroundColor: 'transparent',               fill: false, tension: 0.3, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4 },
+  ];
+  if (hasSavings) datasets.push({ label: 'Savings',    data: pts.map(p => p.bank),       borderColor: '#2dd4bf', backgroundColor: 'rgba(45,212,191,0.04)',  fill: true, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
+  if (hasInvest)  datasets.push({ label: 'Investments', data: pts.map(p => p.investment), borderColor: '#4a9eff', backgroundColor: 'rgba(74,158,255,0.04)',  fill: true, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
+  if (hasRet)     datasets.push({ label: 'Retirement',  data: pts.map(p => p.retirement), borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.04)', fill: true, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
+  if (hasAsset)   datasets.push({ label: 'Assets',      data: pts.map(p => p.asset),      borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.04)',  fill: true, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
+  if (hasDebt)    datasets.push({ label: 'Debt',        data: pts.map(p => p.debts),      borderColor: '#fb7185', backgroundColor: 'transparent',            fill: false, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4, borderDash: [5,3] });
 
   const ctx = canvas.getContext('2d');
   charts['projectionChart'] = new Chart(ctx, {
     type: 'line',
-    data: { datasets },
+    data: { labels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      parsing: false,
       plugins: {
         legend: { display: true, position: 'top', labels: { color: '#8b9cb8', font: CHART_DEFAULTS.font, boxWidth: 12 } },
         tooltip: {
           backgroundColor: '#21283a', borderColor: '#2d3748', borderWidth: 1,
           titleFont: CHART_DEFAULTS.font, bodyFont: CHART_DEFAULTS.font, mode: 'index', intersect: false,
           callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtFull(ctx.parsed.y)}` }
-        },
-        annotation: undefined
+        }
       },
       scales: {
         x: { type: 'category', grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, maxTicksLimit: 15 } },
-        y: { grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, callback: v => cur(v) } }
+        y: { beginAtZero: false, grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, callback: v => cur(v) } }
       }
     }
   });
@@ -1208,22 +1780,99 @@ function renderContribList() {
   const el = document.getElementById('contrib-list');
   if (!el) return;
   const sc = getScenario();
-  const accs = state.accounts.filter(a => a.category !== 'debt' && a.category !== 'asset');
-  if (!accs.length) { el.innerHTML = '<div class="empty-state">Add accounts first.</div>'; return; }
-  let html = '<table class="data-table"><thead><tr><th>Account</th><th class="text-right">Monthly</th><th class="text-right">Annual</th></tr></thead><tbody>';
-  let total = 0;
-  accs.forEach(acc => {
-    const c = getContribution(acc.id);
-    total += c;
-    const override = sc.contributions && sc.contributions[acc.id] !== undefined;
-    html += `<tr>
-      <td>${acc.name} ${override ? '<span style="color:var(--accent-gold);font-size:10px">★ override</span>' : ''}</td>
-      <td class="text-right mono text-positive">${fmtFull(c)}</td>
-      <td class="text-right mono" style="color:var(--text-secondary)">${fmtFull(c*12)}</td>
-    </tr>`;
+  const monthlySalary = (state.meta.salary || 0) / 12;
+  const showPct = monthlySalary > 0;
+  const pct = v => showPct ? (v / monthlySalary * 100).toFixed(1) + '%' : null;
+
+  const groups = [
+    { key: 'bank',       label: 'Savings' },
+    { key: 'investment', label: 'Investing' },
+    { key: 'retirement', label: 'Retirement' },
+  ];
+
+  let html = '';
+  let grandEmployeeTotal = 0;
+  let grandMatchTotal = 0;
+  let hasAny = false;
+
+  groups.forEach(({ key, label }, gi) => {
+    const accs = state.accounts.filter(a => a.category === key);
+    if (!accs.length) return;
+    hasAny = true;
+    const isRetirement = key === 'retirement';
+
+    html += `<div style="font-family:var(--font-mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted);padding:${gi > 0 ? '12px' : '4px'} 12px 4px;${gi > 0 ? 'border-top:1px solid var(--border)' : ''}"> ${label}</div>`;
+
+    const extraCols = isRetirement ? '<th class="text-right">Match</th>' : '';
+    html += `<table class="data-table"><thead><tr><th>Account</th><th class="text-right">Employee</th>${extraCols}${showPct ? '<th class="text-right">% Salary</th>' : ''}<th class="text-right">Annual</th></tr></thead><tbody>`;
+
+    let catEmployee = 0, catMatch = 0;
+
+    accs.forEach(acc => {
+      const c = getContribution(acc.id);
+      const m = isRetirement ? getEmployerMatch(acc.id) : 0;
+      catEmployee += c;
+      catMatch += m;
+      const override = sc.contributions && sc.contributions[acc.id] !== undefined;
+      const total = c + m;
+      html += `<tr>
+        <td>${acc.name}${override ? ' <span style="color:var(--accent-gold);font-size:10px">★</span>' : ''}</td>
+        <td class="text-right mono text-positive">${fmtFull(c)}</td>
+        ${isRetirement ? `<td class="text-right mono" style="color:var(--accent-blue)">${m > 0 ? fmtFull(m) : '<span style="color:var(--text-muted)">—</span>'}</td>` : ''}
+        ${showPct ? `<td class="text-right mono" style="color:var(--text-secondary)">${pct(total)}</td>` : ''}
+        <td class="text-right mono" style="color:var(--text-secondary)">${fmtFull(total * 12)}</td>
+      </tr>`;
+    });
+
+    grandEmployeeTotal += catEmployee;
+    grandMatchTotal += catMatch;
+    const catTotal = catEmployee + catMatch;
+
+    if (isRetirement && catMatch > 0) {
+      html += `<tr style="background:rgba(255,255,255,.015)">
+        <td style="font-weight:600;color:var(--text-secondary)">${label} total (employee)</td>
+        <td class="text-right mono" style="color:var(--accent-gold);font-weight:600">${fmtFull(catEmployee)}</td>
+        <td class="text-right mono" style="color:var(--text-muted)">—</td>
+        ${showPct ? `<td class="text-right mono" style="color:var(--accent-gold)">${pct(catEmployee)}</td>` : ''}
+        <td class="text-right mono" style="color:var(--accent-gold)">${fmtFull(catEmployee * 12)}</td>
+      </tr>
+      <tr style="background:rgba(255,255,255,.015)">
+        <td style="font-weight:600;color:var(--text-secondary)">${label} total (w/ match)</td>
+        <td class="text-right mono" style="color:var(--accent-gold);font-weight:600">${fmtFull(catEmployee)}</td>
+        <td class="text-right mono" style="color:var(--accent-blue);font-weight:600">+${fmtFull(catMatch)}</td>
+        ${showPct ? `<td class="text-right mono" style="color:var(--accent-blue);font-weight:600">${pct(catTotal)}</td>` : ''}
+        <td class="text-right mono" style="color:var(--accent-blue)">${fmtFull(catTotal * 12)}</td>
+      </tr>`;
+    } else {
+      html += `<tr style="background:rgba(255,255,255,.015)">
+        <td style="font-weight:600;color:var(--text-secondary)">${label} total</td>
+        <td class="text-right mono" style="color:var(--accent-gold);font-weight:600">${fmtFull(catEmployee)}</td>
+        ${isRetirement ? `<td class="text-right mono" style="color:var(--text-muted)">—</td>` : ''}
+        ${showPct ? `<td class="text-right mono" style="color:var(--accent-gold)">${pct(catEmployee)}</td>` : ''}
+        <td class="text-right mono" style="color:var(--accent-gold)">${fmtFull(catEmployee * 12)}</td>
+      </tr>`;
+    }
+
+    html += '</tbody></table>';
   });
-  html += `<tr><td style="border-top:1px solid var(--border-light);font-weight:600">Total</td><td class="text-right mono" style="border-top:1px solid var(--border-light);color:var(--accent-gold)">${fmtFull(total)}</td><td class="text-right mono" style="border-top:1px solid var(--border-light);color:var(--accent-gold)">${fmtFull(total*12)}</td></tr>`;
-  html += '</tbody></table>';
+
+  if (!hasAny) { el.innerHTML = '<div class="empty-state">Add accounts first.</div>'; return; }
+
+  const grandEmployee = grandEmployeeTotal;
+  const grandWithMatch = grandEmployeeTotal + grandMatchTotal;
+
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-top:2px solid var(--border-light);margin-top:2px">
+    <span style="font-family:var(--font-mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text-secondary)">Grand Total</span>
+    <div style="text-align:right">
+      <div style="font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--accent-gold)">${fmtFull(grandEmployee)}<span style="font-size:10px;color:var(--text-muted)">/mo</span></div>
+      ${grandMatchTotal > 0
+        ? `<div style="font-family:var(--font-mono);font-size:11px;color:var(--accent-blue)">${fmtFull(grandWithMatch)}/mo with employer match</div>`
+        : ''}
+      ${showPct
+        ? `<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-secondary)">${pct(grandEmployee)} of salary${grandMatchTotal > 0 ? ` &nbsp;·&nbsp; <span style="color:var(--accent-blue)">${pct(grandWithMatch)} with match</span>` : ''}</div>`
+        : `<div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)"><a href="#" onclick="showPage('settings');return false;" style="color:var(--accent-gold)">Add salary in Settings</a> to see %</div>`}
+    </div>
+  </div>`;
   el.innerHTML = html;
 }
 
@@ -1249,8 +1898,18 @@ function renderEventList() {
 }
 
 function renderCoastFIRE() {
-  const { fireNumber, coastFireNumber, currentInvestable, yearsToRet } = computeCoastFIRE();
-  const { currentAge, retirementAge, avgReturn } = state.meta;
+  const { fireNumber, nominalFireNumber, coastFireNumber, currentInvestable, yearsToRet } = computeCoastFIRE();
+  const { retirementAge, retSpend, swr, inflationRate, taxRate } = state.meta;
+  const blendedPct = (blendedCoastRate() * 100).toFixed(1);
+  const currentAge = getCurrentAge();
+
+  const coastAgeResult = computeCoastFIREAge();
+  const coastAgeDisplay = !coastAgeResult.reached ? '—'
+    : coastAgeResult.coastAge <= currentAge ? 'Now'
+    : `Age ${Math.floor(coastAgeResult.coastAge)}`;
+  const coastAgeSub = !coastAgeResult.reached ? 'Not on track — add contributions'
+    : coastAgeResult.coastAge <= currentAge ? 'Contributions are optional'
+    : `~${(coastAgeResult.coastAge - currentAge).toFixed(1)} yrs away`;
 
   // Stats
   const statEl = document.getElementById('coast-stat-row');
@@ -1261,12 +1920,12 @@ function renderCoastFIRE() {
         <div class="stat-label">Current Investable</div>
         <div class="stat-value ${currentInvestable >= coastFireNumber ? 'positive' : 'gold'}">${cur(currentInvestable)}</div>
         <div class="progress-bar"><div class="progress-fill" style="width:${progress.toFixed(1)}%"></div></div>
-        <div class="stat-sub">${progress.toFixed(1)}% of Coast FIRE</div>
+        <div class="stat-sub">${progress.toFixed(1)}% of today's coast number</div>
       </div>
       <div class="stat-box">
-        <div class="stat-label">Coast FIRE Number</div>
-        <div class="stat-value gold">${cur(coastFireNumber)}</div>
-        <div class="stat-sub">Stop contributing now & still retire</div>
+        <div class="stat-label">Coast FIRE Age</div>
+        <div class="stat-value ${coastAgeResult.reached ? 'gold' : ''}" style="${!coastAgeResult.reached ? 'color:var(--negative)' : ''}">${coastAgeDisplay}</div>
+        <div class="stat-sub">${coastAgeSub}</div>
       </div>
       <div class="stat-box">
         <div class="stat-label">FIRE Number</div>
@@ -1276,79 +1935,307 @@ function renderCoastFIRE() {
       <div class="stat-box">
         <div class="stat-label">Years to Retirement</div>
         <div class="stat-value" style="color:var(--text-secondary)">${yearsToRet}</div>
-        <div class="stat-sub">Age ${currentAge||30} → ${retirementAge||55}</div>
+        <div class="stat-sub">Age ${currentAge} → ${retirementAge||55}</div>
       </div>`;
   }
 
   // Fire number display
   const fireEl = document.getElementById('fire-number-display');
   if (fireEl) {
-    const { retSpend, swr } = state.meta;
+    const tr = taxRate || 0;
+    const grossAnnual = (retSpend || 5000) * 12 / (1 - Math.min(tr / 100, 0.99));
     fireEl.innerHTML = `
       <div class="fire-number">${fmtFull(fireNumber)}</div>
-      <div class="fire-sub">Based on ${fmtFull((retSpend||5000)*12)}/yr spend at ${swr||4}% withdrawal</div>
+      <div class="fire-sub">${tr > 0 ? `Gross withdrawal — ${fmtFull(grossAnnual)}/yr` : `Today's dollars — ${fmtFull((retSpend||5000)*12)}/yr`} at ${swr||4}% SWR</div>
       <hr class="divider">
       <table class="data-table">
-        <tr><td style="color:var(--text-muted)">Annual Spend</td><td class="text-right mono">${fmtFull((retSpend||5000)*12)}</td></tr>
-        <tr><td style="color:var(--text-muted)">SWR</td><td class="text-right mono">${swr||4}%</td></tr>
-        <tr><td style="color:var(--text-muted)">Gap to FIRE</td><td class="text-right mono ${currentInvestable < fireNumber ? 'text-negative' : 'text-positive'}">${cur(Math.max(0, fireNumber - currentInvestable))}</td></tr>
+        <tr><td style="color:var(--text-muted)">Post-tax Monthly Spend</td><td class="text-right mono">${fmtFull((retSpend||5000)*12)}/yr</td></tr>
+        ${tr > 0 ? `<tr><td style="color:var(--text-muted)">Effective Tax Rate</td><td class="text-right mono">${tr}%</td></tr>
+        <tr><td style="color:var(--text-muted)">Gross Annual Withdrawal</td><td class="text-right mono" style="color:var(--accent-gold)">${fmtFull(grossAnnual)}/yr</td></tr>` : ''}
+        <tr><td style="color:var(--text-muted)">Safe Withdrawal Rate</td><td class="text-right mono">${swr||4}%</td></tr>
+        <tr><td style="color:var(--text-muted)">Nominal at Retirement</td><td class="text-right mono" style="color:var(--text-secondary)">${fmtFull(nominalFireNumber)} <span style="font-size:10px">(at ${inflationRate||3}% inflation)</span></td></tr>
+        <tr><td style="color:var(--text-muted)">Gap to FIRE (today's $)</td><td class="text-right mono ${currentInvestable < fireNumber ? 'text-negative' : 'text-positive'}">${cur(Math.max(0, fireNumber - currentInvestable))}</td></tr>
       </table>`;
   }
 
   // Coast FIRE display
   const coastEl = document.getElementById('coast-fire-display');
   if (coastEl) {
-    const reached = currentInvestable >= coastFireNumber;
-    coastEl.innerHTML = `
-      <div class="fire-number" style="color:${reached?'var(--positive)':'var(--accent-gold)'}">${fmtFull(coastFireNumber)}</div>
-      <div class="fire-sub">${reached ? '✓ Coast FIRE reached! Contributions are gravy.' : `${cur(Math.max(0, coastFireNumber - currentInvestable))} to go`}</div>
-      <hr class="divider">
-      <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">
-        If your investments reach <strong style="color:var(--accent-gold)">${fmtFull(coastFireNumber)}</strong> today and grow at 
-        <strong>${avgReturn||7}%</strong> annually with no additional contributions, 
-        they will reach <strong style="color:var(--accent-blue)">${fmtFull(fireNumber)}</strong> by age ${retirementAge||55}.
-      </p>`;
+    if (!coastAgeResult.reached) {
+      coastEl.innerHTML = `
+        <div class="fire-number" style="color:var(--negative)">Not on track</div>
+        <div class="fire-sub">Current contributions won't reach Coast FIRE before retirement</div>
+        <hr class="divider">
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">
+          Increase monthly contributions or adjust your retirement age / return rate to find a path to Coast FIRE.
+        </p>`;
+    } else if (coastAgeResult.coastAge <= currentAge) {
+      coastEl.innerHTML = `
+        <div class="fire-number" style="color:var(--positive)">Age ${currentAge} ✓</div>
+        <div class="fire-sub">Coast FIRE reached — contributions are optional</div>
+        <hr class="divider">
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">
+          Your <strong style="color:var(--accent-gold)">${fmtFull(currentInvestable)}</strong> invested at
+          <strong>${blendedPct}%</strong> real return will grow to
+          <strong style="color:var(--accent-blue)">${fmtFull(fireNumber)}</strong> by age ${retirementAge||55} with no further contributions.
+        </p>`;
+    } else {
+      const yrs = (coastAgeResult.coastAge - currentAge).toFixed(1);
+      const floorAge = Math.floor(coastAgeResult.coastAge);
+      coastEl.innerHTML = `
+        <div class="fire-number" style="color:var(--accent-gold)">Age ${floorAge}</div>
+        <div class="fire-sub">~${yrs} yrs away — contribute until then, coast after</div>
+        <hr class="divider">
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">
+          At age ${floorAge} your portfolio will reach roughly
+          <strong style="color:var(--accent-gold)">${fmtFull(coastAgeResult.coastNumberAtCoast)}</strong>.
+          Left alone at <strong>${blendedPct}%</strong>, that grows to
+          <strong style="color:var(--accent-blue)">${fmtFull(fireNumber)}</strong> by age ${retirementAge||55} — no more contributions needed.
+        </p>`;
+    }
   }
 
   // Coast FIRE chart
   renderCoastChart(coastFireNumber, fireNumber, yearsToRet);
 }
 
+// ══════════════════════════════════════════════
+// COAST FIRE SNAPSHOTS
+// ══════════════════════════════════════════════
+function currentMonthlyCoastContrib() {
+  let c = 0;
+  state.accounts.forEach(acc => {
+    if (isCoastAccount(acc))
+      c += getContribution(acc.id) + getEmployerMatch(acc.id);
+  });
+  return c;
+}
+
+function saveCoastSnapshot() {
+  const { fireNumber, coastFireNumber, currentInvestable } = computeCoastFIRE();
+  const coastAgeResult = computeCoastFIREAge();
+  const now = new Date();
+  const label = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) + ' Plan';
+  state.coastSnapshots.push({
+    id: uid(),
+    label,
+    createdAt: monthKey(now.getFullYear(), now.getMonth() + 1),
+    birthYear:     state.meta.birthYear,
+    retirementAge: state.meta.retirementAge || 55,
+    retSpend:      state.meta.retSpend || 5000,
+    swr:           state.meta.swr || 4,
+    avgReturn:     blendedCoastRate() * 100,
+    inflationRate: state.meta.inflationRate || 3,
+    portfolioValue:  currentInvestable,
+    monthlyContrib:  currentMonthlyCoastContrib(),
+    fireNumber,
+    coastFireNumber,
+    coastAge: coastAgeResult.reached ? coastAgeResult.coastAge : null,
+  });
+  persistState();
+  renderCoastSnapshots();
+}
+
+function deleteCoastSnapshot(id) {
+  if (!confirm('Delete this snapshot?')) return;
+  state.coastSnapshots = state.coastSnapshots.filter(s => s.id !== id);
+  persistState();
+  renderCoastSnapshots();
+}
+
+function compareSnapshot(snap) {
+  const now = new Date();
+  const { year: sy, month: sm } = parseMonthKey(snap.createdAt);
+  const monthsElapsed = (now.getFullYear() - sy) * 12 + (now.getMonth() + 1 - sm);
+
+  // Where the plan projected portfolio would be today
+  const r = (snap.avgReturn || 7) / 100 / 12;
+  const g = monthsElapsed > 0 ? Math.pow(1 + r, monthsElapsed) : 1;
+  const plannedNow = r > 0
+    ? snap.portfolioValue * g + snap.monthlyContrib * (g - 1) / r
+    : snap.portfolioValue + snap.monthlyContrib * monthsElapsed;
+
+  const { currentInvestable } = computeCoastFIRE();
+  const delta = currentInvestable - plannedNow;
+  const currentAge = getCurrentAge();
+  const curMonthly = currentMonthlyCoastContrib();
+
+  // Extra contribution needed to hit original coast age
+  let extraNeeded = null;
+  if (snap.coastAge && currentAge < snap.coastAge) {
+    const monthsLeft = Math.round((snap.coastAge - currentAge) * 12);
+    if (monthsLeft > 1) {
+      const annR = (snap.avgReturn || 7) / 100;
+      const targetAtCoast = snap.fireNumber / Math.pow(1 + annR, snap.retirementAge - snap.coastAge);
+      const gL = Math.pow(1 + r, monthsLeft);
+      const totalNeeded = r > 0 ? (targetAtCoast - currentInvestable * gL) * r / (gL - 1) : null;
+      if (totalNeeded !== null) {
+        extraNeeded = Math.max(0, totalNeeded - curMonthly);
+      }
+    }
+  }
+
+  // New coast age with current portfolio + current contributions + snapshot's plan settings
+  // Each account grows at its own rate; threshold still uses snapshot's avgReturn
+  let newCoastAge = null;
+  {
+    const annR   = (snap.avgReturn || 7) / 100;
+    const retAge = snap.retirementAge;
+    const maxMo  = Math.max(0, retAge - currentAge) * 12;
+    const latestBals = getLatestBalances();
+    const snapAccVals = {};
+    state.accounts.forEach(acc => {
+      if (isCoastAccount(acc)) {
+        const b = latestBals[acc.id];
+        snapAccVals[acc.id] = b ? b.value : 0;
+      }
+    });
+    for (let m = 0; m <= maxMo; m++) {
+      const total = Object.values(snapAccVals).reduce((s, v) => s + v, 0);
+      const yLeft = retAge - currentAge - m / 12;
+      const coast = yLeft > 0 ? snap.fireNumber / Math.pow(1 + annR, yLeft) : snap.fireNumber;
+      if (total >= coast) { newCoastAge = currentAge + m / 12; break; }
+      state.accounts.forEach(acc => {
+        if (!(acc.id in snapAccVals)) return;
+        const moR = (acc.rate || 0) / 100 / 12;
+        snapAccVals[acc.id] = snapAccVals[acc.id] * (1 + moR) + getContribution(acc.id) + getEmployerMatch(acc.id);
+      });
+    }
+  }
+
+  return { monthsElapsed, plannedNow, actualNow: currentInvestable, delta, extraNeeded, newCoastAge };
+}
+
+function renderCoastSnapshots() {
+  const el = document.getElementById('coast-snapshots-list');
+  if (!el) return;
+  if (!state.coastSnapshots.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:16px">No snapshots yet. Save one to track your progress against this plan over time.</div>';
+    return;
+  }
+
+  const currentAge = getCurrentAge();
+  let html = '';
+
+  [...state.coastSnapshots].reverse().forEach(snap => {
+    const { monthsElapsed, plannedNow, actualNow, delta, extraNeeded, newCoastAge } = compareSnapshot(snap);
+    const ahead  = delta >= 0;
+    const deltaColor  = ahead ? 'var(--positive)' : 'var(--negative)';
+    const deltaSign   = ahead ? '+' : '';
+    const ageAtSnap   = snap.birthYear ? (parseInt(snap.createdAt.split('-')[0]) - snap.birthYear) : '?';
+    const snapDateFmt = new Date(parseInt(snap.createdAt.split('-')[0]), parseInt(snap.createdAt.split('-')[1]) - 1, 1)
+                          .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    const coastAgeStr = snap.coastAge ? `Age ${Math.floor(snap.coastAge)}` : 'Not on track';
+    const newCoastStr = newCoastAge
+      ? newCoastAge <= currentAge ? 'Now ✓' : `Age ${Math.floor(newCoastAge)}`
+      : 'Beyond retirement';
+    const onPaceForCoast = newCoastAge !== null && snap.coastAge && Math.abs(newCoastAge - snap.coastAge) < 0.25;
+    const coastDiff = snap.coastAge && newCoastAge ? newCoastAge - snap.coastAge : null;
+
+    const elapsedStr = monthsElapsed <= 0 ? 'Saved this month'
+      : monthsElapsed === 1 ? '1 month ago'
+      : monthsElapsed < 12  ? `${monthsElapsed} months ago`
+      : monthsElapsed < 24  ? `${Math.floor(monthsElapsed/12)} year, ${monthsElapsed%12} mo ago`
+      : `${Math.floor(monthsElapsed/12)} years ago`;
+
+    html += `
+    <div style="border:1px solid var(--border);border-radius:var(--radius);margin:12px;overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+        <div>
+          <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text-primary)">${snap.label}</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);margin-left:10px">${snapDateFmt} · ${elapsedStr} · Age ${ageAtSnap}${snap.coastAge ? ` · Planned coast: ${coastAgeStr}` : ''}</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="color:var(--negative)" onclick="deleteCoastSnapshot('${snap.id}')">Delete</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;border-bottom:1px solid var(--border)">
+        ${statCell('Portfolio at Snapshot', fmtFull(snap.portfolioValue), `Planned coast: ${coastAgeStr}`)}
+        ${statCell('Plan Says Today', fmtFull(Math.round(plannedNow)), `After ${monthsElapsed} mo of growth`)}
+        ${statCell('Actual Today', fmtFull(Math.round(actualNow)), ahead ? 'Ahead of plan' : 'Behind plan', ahead ? 'var(--positive)' : 'var(--negative)')}
+        ${statCell('Delta vs Plan', `${deltaSign}${fmtFull(Math.round(delta))}`, onPaceForCoast ? 'Still on pace' : ahead ? 'Keep it up' : 'See below', deltaColor)}
+      </div>
+
+      ${ahead && onPaceForCoast ? `
+      <div style="padding:12px 14px;font-size:12px;color:var(--positive)">
+        ✓ Ahead of plan${coastDiff !== null && coastDiff < -0.25 ? ` — coast FIRE now projecting ${(snap.coastAge - newCoastAge).toFixed(1)} yrs earlier at ${newCoastStr}` : ' — on pace for same coast age'}
+      </div>` : !ahead && onPaceForCoast ? `
+      <div style="padding:12px 14px;font-size:12px;color:var(--text-secondary);line-height:1.6">
+        <span style="color:var(--accent-gold)">◈</span> Portfolio is below the planned trajectory, but contributions + growth still project Coast FIRE at <strong style="color:var(--accent-gold)">${coastAgeStr}</strong>. The shortfall today compounds away before you reach your coast age.
+      </div>` : !ahead ? `
+      <div style="padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${extraNeeded !== null && extraNeeded >= 10 ? `
+        <div style="background:var(--bg-raised);border-radius:var(--radius);padding:12px;border-left:3px solid var(--accent-gold)">
+          <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:6px">Option A — Catch Up</div>
+          <div style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--accent-gold)">+${fmtFull(Math.round(extraNeeded))}<span style="font-size:10px;font-weight:400">/mo extra</span></div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">To still reach Coast FIRE at ${coastAgeStr}</div>
+        </div>` : '<div></div>'}
+        ${newCoastAge !== null ? `
+        <div style="background:var(--bg-raised);border-radius:var(--radius);padding:12px;border-left:3px solid ${coastDiff !== null && coastDiff > 0.25 ? 'var(--negative)' : 'var(--positive)'}">
+          <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:6px">Option B — Current Pace</div>
+          <div style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-primary)">${newCoastStr}</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">
+            ${coastDiff !== null && coastDiff > 0.25 ? `${coastDiff.toFixed(1)} yrs later than planned` :
+              coastDiff !== null && coastDiff < -0.25 ? `${(-coastDiff).toFixed(1)} yrs ahead of plan` :
+              'Same coast age as planned'}
+          </div>
+        </div>` : '<div></div>'}
+      </div>` : `
+      <div style="padding:12px 14px;font-size:12px;color:var(--positive)">
+        ✓ On track — on pace for Coast FIRE at ${coastAgeStr}
+      </div>`}
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+function statCell(label, value, sub, valueColor) {
+  return `<div style="padding:12px 14px;border-right:1px solid var(--border)">
+    <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:4px">${label}</div>
+    <div style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:${valueColor || 'var(--text-primary)'}">${value}</div>
+    <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${sub}</div>
+  </div>`;
+}
+
 function renderCoastChart(coastFireNumber, fireNumber, yearsToRet) {
   destroyChart('coastChart');
   const canvas = document.getElementById('coastChart');
   if (!canvas) return;
-  const { currentAge, retirementAge, avgReturn } = state.meta;
+  const { retirementAge } = state.meta;
+  const currentAge = getCurrentAge();
   const latestBals = getLatestBalances();
-  let currentInvestable = 0;
+  const totalYears = (yearsToRet || 25) + 10;
+
+  // Per-account starting values — each grows at its own rate
+  const accVals = {};
   state.accounts.forEach(acc => {
-    if (acc.category === 'bank' || acc.category === 'investment') {
+    if (isCoastAccount(acc)) {
       const b = latestBals[acc.id];
-      currentInvestable += b ? b.value : 0;
+      accVals[acc.id] = b ? b.value : 0;
     }
   });
 
-  const r = (avgReturn || 7) / 100;
-  const labels = [], withContrib = [], withoutContrib = [], fireTarget = [];
-  const totalYears = (yearsToRet || 25) + 10;
+  const coastAgeResult = computeCoastFIREAge();
+  const coastYearIdx = coastAgeResult.reached ? Math.round(coastAgeResult.coastAge - currentAge) : null;
 
-  // Total monthly contribution from default scenario
-  let monthlyContrib = 0;
-  state.accounts.forEach(acc => {
-    if (acc.category === 'bank' || acc.category === 'investment') monthlyContrib += getContribution(acc.id);
-  });
+  const labels = [], contributingData = [], coastingData = [], fireTargetData = [];
 
-  let wc = currentInvestable, nc = currentInvestable;
   for (let y = 0; y <= totalYears; y++) {
-    const age = (currentAge || 30) + y;
-    labels.push('Age ' + age);
-    withContrib.push(Math.round(wc));
-    withoutContrib.push(Math.round(nc));
-    fireTarget.push(Math.round(fireNumber));
-    // Grow monthly for 12 months
+    const val = Object.values(accVals).reduce((s, v) => s + v, 0);
+    labels.push('Age ' + (currentAge + y));
+    fireTargetData.push(Math.round(fireNumber));
+    const pastCoast = coastYearIdx !== null && y > coastYearIdx;
+    contributingData.push(pastCoast ? null : Math.round(val));
+    coastingData.push(coastYearIdx !== null && y >= coastYearIdx ? Math.round(val) : null);
+    const useContrib = coastYearIdx === null || y < coastYearIdx;
     for (let m = 0; m < 12; m++) {
-      wc = wc * (1 + r/12) + monthlyContrib;
-      nc = nc * (1 + r/12);
+      state.accounts.forEach(acc => {
+        if (!(acc.id in accVals)) return;
+        const moR = (acc.rate || 0) / 100 / 12;
+        const contrib = useContrib ? getContribution(acc.id) + getEmployerMatch(acc.id) : 0;
+        accVals[acc.id] = accVals[acc.id] * (1 + moR) + contrib;
+      });
     }
   }
 
@@ -1358,20 +2245,357 @@ function renderCoastChart(coastFireNumber, fireNumber, yearsToRet) {
     data: {
       labels,
       datasets: [
-        { label: 'With Contributions', data: withContrib, borderColor: '#4a9eff', backgroundColor: 'rgba(74,158,255,0.06)', fill: true, tension: 0.4, pointRadius: 0 },
-        { label: 'Without Contributions (Coast)', data: withoutContrib, borderColor: '#f6c90e', backgroundColor: 'rgba(246,201,14,0.05)', fill: true, tension: 0.4, pointRadius: 0 },
-        { label: 'FIRE Target', data: fireTarget, borderColor: '#34d399', borderDash: [8,4], backgroundColor: 'transparent', pointRadius: 0, borderWidth: 1.5 }
+        { label: 'Contributing',               data: contributingData, borderColor: '#4a9eff', backgroundColor: 'rgba(74,158,255,0.08)', fill: true, tension: 0.4, pointRadius: 0, spanGaps: false },
+        { label: 'Coasting (no contributions)', data: coastingData,    borderColor: '#f6c90e', backgroundColor: 'rgba(246,201,14,0.06)', fill: true, tension: 0.4, pointRadius: 0, spanGaps: false },
+        { label: 'FIRE Target',                data: fireTargetData,   borderColor: '#34d399', borderDash: [8,4], backgroundColor: 'transparent', pointRadius: 0, borderWidth: 1.5 }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: true, position: 'top', labels: { color: '#8b9cb8', font: CHART_DEFAULTS.font, boxWidth: 12 } },
-        tooltip: { backgroundColor: '#21283a', borderColor: '#2d3748', borderWidth: 1, bodyFont: CHART_DEFAULTS.font, mode: 'index', intersect: false, callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtFull(ctx.parsed.y)}` } }
+        tooltip: {
+          backgroundColor: '#21283a', borderColor: '#2d3748', borderWidth: 1,
+          bodyFont: CHART_DEFAULTS.font, mode: 'index', intersect: false,
+          callbacks: { label: ctx => ctx.parsed.y !== null ? ` ${ctx.dataset.label}: ${fmtFull(ctx.parsed.y)}` : null }
+        }
       },
       scales: {
         x: { grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, maxTicksLimit: 10 } },
-        y: { grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, callback: v => cur(v) } }
+        y: { beginAtZero: false, grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, callback: v => cur(v) } }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+// TRADITIONAL FIRE SNAPSHOTS
+// ══════════════════════════════════════════════
+function saveFireSnapshot() {
+  const { fireNumber, currentInvestable, earliestFireAge } = computeTraditionalFIRE();
+  const now = new Date();
+  const label = now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) + ' Plan';
+  if (!state.fireSnapshots) state.fireSnapshots = [];
+  state.fireSnapshots.push({
+    id: uid(),
+    label,
+    createdAt: monthKey(now.getFullYear(), now.getMonth() + 1),
+    birthYear:     state.meta.birthYear,
+    retirementAge: state.meta.retirementAge || 55,
+    retSpend:      state.meta.retSpend || 5000,
+    swr:           state.meta.swr || 4,
+    avgReturn:     blendedCoastRate() * 100,
+    inflationRate: state.meta.inflationRate || 3,
+    portfolioValue:  currentInvestable,
+    monthlyContrib:  currentMonthlyCoastContrib(),
+    fireNumber,
+    fireAge: earliestFireAge,
+  });
+  persistState();
+  renderFireSnapshots();
+}
+
+function deleteFireSnapshot(id) {
+  if (!confirm('Delete this snapshot?')) return;
+  state.fireSnapshots = state.fireSnapshots.filter(s => s.id !== id);
+  persistState();
+  renderFireSnapshots();
+}
+
+function compareFireSnapshot(snap) {
+  const now = new Date();
+  const { year: sy, month: sm } = parseMonthKey(snap.createdAt);
+  const monthsElapsed = (now.getFullYear() - sy) * 12 + (now.getMonth() + 1 - sm);
+
+  const r = (snap.avgReturn || 7) / 100 / 12;
+  const g = monthsElapsed > 0 ? Math.pow(1 + r, monthsElapsed) : 1;
+  const plannedNow = r > 0
+    ? snap.portfolioValue * g + snap.monthlyContrib * (g - 1) / r
+    : snap.portfolioValue + snap.monthlyContrib * monthsElapsed;
+
+  const { currentInvestable } = computeTraditionalFIRE();
+  const delta = currentInvestable - plannedNow;
+  const currentAge = getCurrentAge();
+  const curMonthly = currentMonthlyCoastContrib();
+
+  // Extra monthly contribution needed to still hit original FIRE age
+  let extraNeeded = null;
+  if (snap.fireAge && currentAge < snap.fireAge) {
+    const monthsLeft = Math.round((snap.fireAge - currentAge) * 12);
+    if (monthsLeft > 1) {
+      const gL = Math.pow(1 + r, monthsLeft);
+      const totalNeeded = r > 0 ? (snap.fireNumber - currentInvestable * gL) * r / (gL - 1) : null;
+      if (totalNeeded !== null) extraNeeded = Math.max(0, totalNeeded - curMonthly);
+    }
+  }
+
+  // New FIRE age at current contributions using per-account rates
+  let newFireAge = null;
+  {
+    const maxMo = 60 * 12;
+    const latestBals = getLatestBalances();
+    const snapAccVals = {};
+    state.accounts.forEach(acc => {
+      if (isCoastAccount(acc)) {
+        const b = latestBals[acc.id];
+        snapAccVals[acc.id] = b ? b.value : 0;
+      }
+    });
+    for (let m = 0; m <= maxMo; m++) {
+      const total = Object.values(snapAccVals).reduce((s, v) => s + v, 0);
+      if (total >= snap.fireNumber) { newFireAge = currentAge + m / 12; break; }
+      state.accounts.forEach(acc => {
+        if (!(acc.id in snapAccVals)) return;
+        const moR = (acc.rate || 0) / 100 / 12;
+        snapAccVals[acc.id] = snapAccVals[acc.id] * (1 + moR) + getContribution(acc.id) + getEmployerMatch(acc.id);
+      });
+    }
+  }
+
+  return { monthsElapsed, plannedNow, actualNow: currentInvestable, delta, extraNeeded, newFireAge };
+}
+
+function renderFireSnapshots() {
+  const el = document.getElementById('fire-snapshots-list');
+  if (!el) return;
+  if (!state.fireSnapshots || !state.fireSnapshots.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:16px">No snapshots yet. Save one to track your progress against this plan over time.</div>';
+    return;
+  }
+
+  const currentAge = getCurrentAge();
+  let html = '';
+
+  [...state.fireSnapshots].reverse().forEach(snap => {
+    const { monthsElapsed, plannedNow, actualNow, delta, extraNeeded, newFireAge } = compareFireSnapshot(snap);
+    const ahead = delta >= 0;
+    const deltaColor = ahead ? 'var(--positive)' : 'var(--negative)';
+    const deltaSign  = ahead ? '+' : '';
+    const ageAtSnap  = snap.birthYear ? (parseInt(snap.createdAt.split('-')[0]) - snap.birthYear) : '?';
+    const snapDateFmt = new Date(parseInt(snap.createdAt.split('-')[0]), parseInt(snap.createdAt.split('-')[1]) - 1, 1)
+                          .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const fireAgeStr = snap.fireAge ? `Age ${Math.floor(snap.fireAge)}` : 'Not on track';
+    const newFireStr = newFireAge
+      ? (newFireAge <= currentAge ? 'Now ✓' : `Age ${Math.floor(newFireAge)}`)
+      : 'Not in range';
+    const onPaceForFire = newFireAge !== null && snap.fireAge && Math.abs(newFireAge - snap.fireAge) < 0.25;
+    const fireDiff = snap.fireAge && newFireAge ? newFireAge - snap.fireAge : null;
+    const elapsedStr = monthsElapsed <= 0 ? 'Saved this month'
+      : monthsElapsed === 1 ? '1 month ago'
+      : monthsElapsed < 12  ? `${monthsElapsed} months ago`
+      : monthsElapsed < 24  ? `${Math.floor(monthsElapsed/12)} year, ${monthsElapsed%12} mo ago`
+      : `${Math.floor(monthsElapsed/12)} years ago`;
+
+    html += `
+    <div style="border:1px solid var(--border);border-radius:var(--radius);margin:12px;overflow:hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+        <div>
+          <span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text-primary)">${snap.label}</span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);margin-left:10px">${snapDateFmt} · ${elapsedStr} · Age ${ageAtSnap}${snap.fireAge ? ` · Planned FIRE: ${fireAgeStr}` : ''}</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="color:var(--negative)" onclick="deleteFireSnapshot('${snap.id}')">Delete</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;border-bottom:1px solid var(--border)">
+        ${statCell('Portfolio at Snapshot', fmtFull(snap.portfolioValue), `Planned FIRE: ${fireAgeStr}`)}
+        ${statCell('Plan Says Today', fmtFull(Math.round(plannedNow)), `After ${monthsElapsed} mo of growth`)}
+        ${statCell('Actual Today', fmtFull(Math.round(actualNow)), ahead ? 'Ahead of plan' : 'Behind plan', ahead ? 'var(--positive)' : 'var(--negative)')}
+        ${statCell('Delta vs Plan', `${deltaSign}${fmtFull(Math.round(delta))}`, onPaceForFire ? 'Still on pace' : ahead ? 'Keep it up' : 'See below', deltaColor)}
+      </div>
+      ${ahead && onPaceForFire ? `
+      <div style="padding:12px 14px;font-size:12px;color:var(--positive)">
+        ✓ Ahead of plan${fireDiff !== null && fireDiff < -0.25 ? ` — FIRE now projecting ${(-fireDiff).toFixed(1)} yrs earlier at ${newFireStr}` : ' — on pace for same FIRE age'}
+      </div>` : !ahead && onPaceForFire ? `
+      <div style="padding:12px 14px;font-size:12px;color:var(--text-secondary);line-height:1.6">
+        <span style="color:var(--accent-gold)">◈</span> Portfolio is below the planned trajectory, but contributions + growth still project FIRE at <strong style="color:var(--accent-gold)">${fireAgeStr}</strong>. The shortfall today compounds away before you reach your FIRE age.
+      </div>` : !ahead ? `
+      <div style="padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${extraNeeded !== null && extraNeeded >= 10 ? `
+        <div style="background:var(--bg-raised);border-radius:var(--radius);padding:12px;border-left:3px solid var(--accent-gold)">
+          <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:6px">Option A — Catch Up</div>
+          <div style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--accent-gold)">+${fmtFull(Math.round(extraNeeded))}<span style="font-size:10px;font-weight:400">/mo extra</span></div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">To still reach FIRE at ${fireAgeStr}</div>
+        </div>` : '<div></div>'}
+        ${newFireAge !== null ? `
+        <div style="background:var(--bg-raised);border-radius:var(--radius);padding:12px;border-left:3px solid ${fireDiff !== null && fireDiff > 0.25 ? 'var(--negative)' : 'var(--positive)'}">
+          <div style="font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:6px">Option B — Current Pace</div>
+          <div style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text-primary)">${newFireStr}</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">
+            ${fireDiff !== null && fireDiff > 0.25 ? `${fireDiff.toFixed(1)} yrs later than planned` :
+              fireDiff !== null && fireDiff < -0.25 ? `${(-fireDiff).toFixed(1)} yrs ahead of plan` :
+              'Same FIRE age as planned'}
+          </div>
+        </div>` : '<div></div>'}
+      </div>` : `
+      <div style="padding:12px 14px;font-size:12px;color:var(--positive)">
+        ✓ On track — on pace for FIRE at ${fireAgeStr}
+      </div>`}
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════
+// TRADITIONAL FIRE RENDER
+// ══════════════════════════════════════════════
+function renderTraditionalFIRE() {
+  const { fireNumber, nominalFireNumber, currentInvestable, earliestFireAge, yearsToRet } = computeTraditionalFIRE();
+  const { retirementAge, retSpend, swr, inflationRate, taxRate } = state.meta;
+  const currentAge = getCurrentAge();
+
+  const statEl = document.getElementById('fire-stat-row');
+  if (statEl) {
+    const fireAgeDisplay = earliestFireAge !== null
+      ? (earliestFireAge <= currentAge ? 'Now' : `Age ${Math.floor(earliestFireAge)}`)
+      : '> Age ' + (retirementAge || 55);
+    const fireAgeSub = earliestFireAge !== null
+      ? (earliestFireAge <= currentAge ? 'Already at FIRE target' : `~${(earliestFireAge - currentAge).toFixed(1)} yrs away`)
+      : 'Not on track before retirement';
+    const progress = Math.min(100, (currentInvestable / fireNumber) * 100);
+    statEl.innerHTML = `
+      <div class="stat-box">
+        <div class="stat-label">Current Investable</div>
+        <div class="stat-value ${currentInvestable >= fireNumber ? 'positive' : 'gold'}">${cur(currentInvestable)}</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${progress.toFixed(1)}%"></div></div>
+        <div class="stat-sub">${progress.toFixed(1)}% of FIRE number</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Earliest FIRE Age</div>
+        <div class="stat-value ${earliestFireAge !== null ? 'gold' : ''}" style="${earliestFireAge === null ? 'color:var(--negative)' : ''}">${fireAgeDisplay}</div>
+        <div class="stat-sub">${fireAgeSub}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">FIRE Number</div>
+        <div class="stat-value" style="color:var(--accent-blue)">${cur(fireNumber)}</div>
+        <div class="stat-sub">Target portfolio at retirement</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Years to Planned Retirement</div>
+        <div class="stat-value" style="color:var(--text-secondary)">${yearsToRet}</div>
+        <div class="stat-sub">Age ${currentAge} → ${retirementAge||55}</div>
+      </div>`;
+  }
+
+  const fireNumEl = document.getElementById('fire-number-display-tfire');
+  if (fireNumEl) {
+    const tr = taxRate || 0;
+    const grossAnnual = (retSpend || 5000) * 12 / (1 - Math.min(tr / 100, 0.99));
+    fireNumEl.innerHTML = `
+      <div class="fire-number">${fmtFull(fireNumber)}</div>
+      <div class="fire-sub">${tr > 0 ? `Gross withdrawal — ${fmtFull(grossAnnual)}/yr` : `Today's dollars — ${fmtFull((retSpend||5000)*12)}/yr`} at ${swr||4}% SWR</div>
+      <hr class="divider">
+      <table class="data-table">
+        <tr><td style="color:var(--text-muted)">Post-tax Monthly Spend</td><td class="text-right mono">${fmtFull((retSpend||5000)*12)}/yr</td></tr>
+        ${tr > 0 ? `<tr><td style="color:var(--text-muted)">Effective Tax Rate</td><td class="text-right mono">${tr}%</td></tr>
+        <tr><td style="color:var(--text-muted)">Gross Annual Withdrawal</td><td class="text-right mono" style="color:var(--accent-gold)">${fmtFull(grossAnnual)}/yr</td></tr>` : ''}
+        <tr><td style="color:var(--text-muted)">Safe Withdrawal Rate</td><td class="text-right mono">${swr||4}%</td></tr>
+        <tr><td style="color:var(--text-muted)">Nominal at Retirement</td><td class="text-right mono" style="color:var(--text-secondary)">${fmtFull(nominalFireNumber)} <span style="font-size:10px">(at ${inflationRate||3}% inflation)</span></td></tr>
+        <tr><td style="color:var(--text-muted)">Gap to FIRE (today's $)</td><td class="text-right mono ${currentInvestable < fireNumber ? 'text-negative' : 'text-positive'}">${cur(Math.max(0, fireNumber - currentInvestable))}</td></tr>
+      </table>`;
+  }
+
+  const projEl = document.getElementById('fire-projection-display');
+  if (projEl) {
+    if (earliestFireAge === null) {
+      projEl.innerHTML = `
+        <div class="fire-number" style="color:var(--negative)">Not on track</div>
+        <div class="fire-sub">Portfolio won't reach FIRE at current contributions</div>
+        <hr class="divider">
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">
+          Increase monthly contributions, adjust your return rate, or extend your retirement age to reach Traditional FIRE.
+        </p>`;
+    } else if (earliestFireAge <= currentAge) {
+      projEl.innerHTML = `
+        <div class="fire-number" style="color:var(--positive)">Now ✓</div>
+        <div class="fire-sub">Portfolio already at FIRE target</div>
+        <hr class="divider">
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">
+          Your <strong style="color:var(--accent-gold)">${fmtFull(currentInvestable)}</strong> portfolio meets the FIRE number of
+          <strong style="color:var(--accent-blue)">${fmtFull(fireNumber)}</strong>.
+        </p>`;
+    } else {
+      const yrs = (earliestFireAge - currentAge).toFixed(1);
+      const floorAge = Math.floor(earliestFireAge);
+      const beforePlanned = earliestFireAge <= (retirementAge || 55);
+      projEl.innerHTML = `
+        <div class="fire-number" style="color:var(--accent-gold)">Age ${floorAge}</div>
+        <div class="fire-sub">~${yrs} yrs away${beforePlanned ? ' — before planned retirement' : ' — after planned retirement'}</div>
+        <hr class="divider">
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">
+          Continuing full contributions, your portfolio reaches
+          <strong style="color:var(--accent-gold)">${fmtFull(fireNumber)}</strong> at age ${floorAge}.
+          ${beforePlanned
+            ? `That's <strong>${(retirementAge||55) - floorAge} years</strong> before your planned retirement age of ${retirementAge||55}.`
+            : `To retire at ${retirementAge||55}, consider increasing contributions or adjusting your FIRE target.`
+          }
+        </p>`;
+    }
+  }
+
+  renderTFireChart();
+}
+
+function renderTFireChart() {
+  destroyChart('tFireChart');
+  const canvas = document.getElementById('tFireChart');
+  if (!canvas) return;
+  const { fireNumber, earliestFireAge } = computeTraditionalFIRE();
+  const { retirementAge } = state.meta;
+  const currentAge = getCurrentAge();
+  const totalYears = Math.max((retirementAge || 55) - currentAge + 10, 20);
+
+  const latestBals = getLatestBalances();
+  const accVals = {};
+  state.accounts.forEach(acc => {
+    if (isCoastAccount(acc)) {
+      const b = latestBals[acc.id];
+      accVals[acc.id] = b ? b.value : 0;
+    }
+  });
+
+  const fireYearIdx = earliestFireAge !== null ? Math.round(earliestFireAge - currentAge) : null;
+  const labels = [], beforeData = [], afterData = [], fireTargetData = [];
+
+  for (let y = 0; y <= totalYears; y++) {
+    const val = Object.values(accVals).reduce((s, v) => s + v, 0);
+    labels.push('Age ' + (currentAge + y));
+    fireTargetData.push(Math.round(fireNumber));
+    const pastFire = fireYearIdx !== null && y > fireYearIdx;
+    beforeData.push(pastFire ? null : Math.round(val));
+    afterData.push(fireYearIdx !== null && y >= fireYearIdx ? Math.round(val) : null);
+    for (let m = 0; m < 12; m++) {
+      state.accounts.forEach(acc => {
+        if (!(acc.id in accVals)) return;
+        const moR = (acc.rate || 0) / 100 / 12;
+        accVals[acc.id] = accVals[acc.id] * (1 + moR) + getContribution(acc.id) + getEmployerMatch(acc.id);
+      });
+    }
+  }
+
+  const ctx = canvas.getContext('2d');
+  charts['tFireChart'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Contributing',  data: beforeData,     borderColor: '#4a9eff', backgroundColor: 'rgba(74,158,255,0.08)',  fill: true, tension: 0.4, pointRadius: 0, spanGaps: false },
+        { label: 'FIRE reached',  data: afterData,      borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.08)',  fill: true, tension: 0.4, pointRadius: 0, spanGaps: false },
+        { label: 'FIRE Target',   data: fireTargetData, borderColor: '#f6c90e', borderDash: [8,4], backgroundColor: 'transparent', pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#8b9cb8', font: CHART_DEFAULTS.font, boxWidth: 12 } },
+        tooltip: {
+          backgroundColor: '#21283a', borderColor: '#2d3748', borderWidth: 1,
+          bodyFont: CHART_DEFAULTS.font, mode: 'index', intersect: false,
+          callbacks: { label: ctx => ctx.parsed.y !== null ? ` ${ctx.dataset.label}: ${fmtFull(ctx.parsed.y)}` : null }
+        }
+      },
+      scales: {
+        x: { grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, maxTicksLimit: 10 } },
+        y: { beginAtZero: false, grid: { color: CHART_DEFAULTS.gridColor }, ticks: { color: '#536480', font: CHART_DEFAULTS.font, callback: v => cur(v) } }
       }
     }
   });
@@ -1459,6 +2683,52 @@ function initAccountDrag() {
   });
 }
 
+function renderDebtPayoff() {
+  const el = document.getElementById('debt-payoff-list');
+  if (!el) return;
+  const latestBals = getLatestBalances();
+  const debtAccs = state.accounts.filter(a => a.category === 'debt');
+  if (!debtAccs.length) { el.innerHTML = '<div class="empty-state">No debt accounts.</div>'; return; }
+
+  let html = '<table class="data-table"><thead><tr><th>Account</th><th class="text-right">Balance</th><th class="text-right">Rate</th><th class="text-right">Payment/mo</th><th>Payoff</th><th class="text-right">Total Interest</th></tr></thead><tbody>';
+  let totalBal = 0, totalInterest = 0;
+
+  debtAccs.forEach(acc => {
+    const b = latestBals[acc.id];
+    const bal = b ? Math.abs(b.value) : 0;
+    totalBal += bal;
+    if (!bal) {
+      html += `<tr><td><strong>${acc.name}</strong></td><td class="text-right mono text-negative" colspan="5" style="color:var(--text-muted)">No balance on record</td></tr>`;
+      return;
+    }
+    if (!acc.contrib) {
+      html += `<tr><td><strong>${acc.name}</strong></td><td class="text-right mono text-negative">${fmtFull(bal)}</td><td class="text-right mono">${acc.rate||0}%</td><td class="text-right mono" style="color:var(--text-muted)">—</td><td style="color:var(--text-muted);font-size:12px">No payment set</td><td class="text-right mono" style="color:var(--text-muted)">—</td></tr>`;
+      return;
+    }
+    const sched = buildAmortSchedule(bal, acc.rate || 0, acc.contrib);
+    if (!sched.length) {
+      html += `<tr><td><strong>${acc.name}</strong></td><td class="text-right mono text-negative">${fmtFull(bal)}</td><td class="text-right mono">${acc.rate||0}%</td><td class="text-right mono text-negative">${fmtFull(acc.contrib)}</td><td style="color:var(--negative);font-size:12px">Payment ≤ interest</td><td>—</td></tr>`;
+      return;
+    }
+    const payoff = new Date(); payoff.setMonth(payoff.getMonth() + sched.length);
+    const interest = sched.reduce((s, r) => s + r.interest, 0);
+    totalInterest += interest;
+    const yrs = Math.floor(sched.length / 12), mos = sched.length % 12;
+    html += `<tr>
+      <td><strong>${acc.name}</strong></td>
+      <td class="text-right mono text-negative">${fmtFull(bal)}</td>
+      <td class="text-right mono">${acc.rate||0}%</td>
+      <td class="text-right mono">${fmtFull(acc.contrib)}</td>
+      <td style="font-size:12px"><span style="color:var(--positive)">${payoff.toLocaleString('default',{month:'short'})} ${payoff.getFullYear()}</span> <span style="color:var(--text-muted)">· ${yrs > 0 ? yrs+'y ' : ''}${mos}m</span></td>
+      <td class="text-right mono" style="color:var(--text-secondary)">${fmtFull(interest)}</td>
+    </tr>`;
+  });
+
+  html += `<tr style="border-top:1px solid var(--border-light)"><td style="font-weight:600">Total</td><td class="text-right mono text-negative">${fmtFull(totalBal)}</td><td></td><td></td><td></td><td class="text-right mono" style="color:var(--text-secondary)">${fmtFull(totalInterest)}</td></tr>`;
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
 // ══════════════════════════════════════════════
 // MODAL HELPERS
 // ══════════════════════════════════════════════
@@ -1498,6 +2768,9 @@ renderAll = function() { _renderAll(); persistState(); };
       state = JSON.parse(saved);
       if (!state.scenarios) state.scenarios = [{ id: 'default', name: 'Base Case', contributions: {}, oneTimeEvents: [] }];
       if (!state.activeScenario) state.activeScenario = state.scenarios[0].id;
+      if (state.meta.currentAge && !state.meta.birthYear) state.meta.birthYear = new Date().getFullYear() - state.meta.currentAge;
+      if (!state.coastSnapshots) state.coastSnapshots = [];
+      if (!state.fireSnapshots) state.fireSnapshots = [];
     } catch(e) { /* corrupt data, start fresh */ }
   }
   loadSettingsToUI();
