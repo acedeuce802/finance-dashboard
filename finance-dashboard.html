@@ -2523,9 +2523,13 @@ function renderCategoryHistory() {
   const el = document.getElementById('category-history');
   if (!el) return;
 
-  const allMonths = [...new Set(state.balances.map(b => monthKey(b.year, b.month)))].sort().reverse();
-  const recent = allMonths.slice(0, 5);
-  if (!recent.length) { el.innerHTML = ''; return; }
+  const allYears = [...new Set(state.balances.map(b => b.year))].sort((a, b) => b - a).slice(0, 5);
+  if (!allYears.length) { el.innerHTML = ''; return; }
+  // For each year prefer January; fall back to the earliest month with an entry that year.
+  const recent = allYears.map(year => {
+    const months = [...new Set(state.balances.filter(b => b.year === year).map(b => b.month))].sort((a, b) => a - b);
+    return monthKey(year, months.includes(1) ? 1 : months[0]);
+  });
 
   const catDefs = [
     { key: 'bank',       label: 'Bank',    color: '#2dd4bf' },
@@ -2631,13 +2635,13 @@ function renderProjectionChart() {
   const hasDebt    = state.accounts.some(a => a.category === 'debt');
 
   const datasets = [
-    { label: 'Net Worth',   data: pts.map(p => p.netWorth),    borderColor: '#f6c90e', backgroundColor: 'transparent',               fill: false, tension: 0.3, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4 },
+    { label: 'Net Worth',   data: pts.map(p => p.netWorth),    borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.08)',       fill: true,  tension: 0.3, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4 },
   ];
-  if (hasSavings) datasets.push({ label: 'Savings',    data: pts.map(p => p.bank),       borderColor: '#2dd4bf', backgroundColor: 'rgba(45,212,191,0.04)',  fill: true, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
-  if (hasInvest)  datasets.push({ label: 'Investments', data: pts.map(p => p.investment), borderColor: '#4a9eff', backgroundColor: 'rgba(74,158,255,0.04)',  fill: true, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
-  if (hasRet)     datasets.push({ label: 'Retirement',  data: pts.map(p => p.retirement), borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.04)', fill: true, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
-  if (hasAsset)   datasets.push({ label: 'Assets',      data: pts.map(p => p.asset),      borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.04)',  fill: true, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
-  if (hasDebt)    datasets.push({ label: 'Debt',        data: pts.map(p => p.debts),      borderColor: '#fb7185', backgroundColor: 'transparent',            fill: false, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4, borderDash: [5,3] });
+  if (hasSavings) datasets.push({ label: 'Savings',    data: pts.map(p => p.bank),       borderColor: '#e2e8f0', backgroundColor: 'transparent',             fill: false, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
+  if (hasInvest)  datasets.push({ label: 'Investments', data: pts.map(p => p.investment), borderColor: '#4a9eff', backgroundColor: 'transparent',             fill: false, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
+  if (hasRet)     datasets.push({ label: 'Retirement',  data: pts.map(p => p.retirement), borderColor: '#a78bfa', backgroundColor: 'transparent',             fill: false, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
+  if (hasAsset)   datasets.push({ label: 'Assets',      data: pts.map(p => p.asset),      borderColor: '#f6c90e', backgroundColor: 'transparent',             fill: false, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
+  if (hasDebt)    datasets.push({ label: 'Debt',        data: pts.map(p => -p.debts),     borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.10)',   fill: true,  tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4, borderDash: [5,3] });
 
   const ctx = canvas.getContext('2d');
   charts['projectionChart'] = new Chart(ctx, {
@@ -3354,11 +3358,7 @@ function renderTraditionalFIRE() {
         <div class="stat-value" style="color:var(--accent-blue)">${cur(fireNumber)}</div>
         <div class="stat-sub">Target portfolio at retirement</div>
       </div>
-      <div class="stat-box">
-        <div class="stat-label">Years to Planned Retirement</div>
-        <div class="stat-value" style="color:var(--text-secondary)">${yearsToRet}</div>
-        <div class="stat-sub">Age ${currentAge} → ${retirementAge||55}</div>
-      </div>`;
+    `;
   }
 
   const fireNumEl = document.getElementById('fire-number-display-tfire');
